@@ -223,16 +223,46 @@ func put(sec security, strike float64) (int, error) {
 	return -1, fmt.Errorf("Did not find a put that matched a strike of %f", strike)
 }
 
+func printTicker(ticker string, sec security, put int) {
+	if *csv && *header {
+		fmt.Println("share name,share price,expiration,OTM put strike,last,bid,ask")
+	}
+
+	if *csv {
+		fmt.Printf(ticker)
+		fmt.Printf(",")
+		fmt.Printf("%f", sec.price)
+		fmt.Printf(",")
+		fmt.Printf("%s", sec.puts[put].expiration)
+		fmt.Printf(",")
+		fmt.Printf("%f", otmPutStrike(sec))
+		fmt.Printf(",")
+		fmt.Printf("%f", sec.puts[put].last)
+		fmt.Printf(",")
+		fmt.Printf("%f", sec.puts[put].bid)
+		fmt.Printf(",")
+		fmt.Printf("%f", sec.puts[put].ask)
+		fmt.Printf("\n")
+	} else {
+		fmt.Printf("%s price: %6.2f\n", ticker, sec.price)
+		fmt.Printf("   strikes: %v\n", sec.strikes)
+		fmt.Printf("   OTM put\n")
+		fmt.Printf("              expires: %s\n", sec.puts[put].expiration)
+		fmt.Printf("               strike: %6.2f\n", sec.puts[put].strike)
+		fmt.Printf("               last  : %6.2f\n", sec.puts[put].last)
+		fmt.Printf("               bid   : %6.2f\n", sec.puts[put].bid)
+		fmt.Printf("               ask   : %6.2f\n", sec.puts[put].ask)
+		lsRatio := sec.puts[put].last / sec.puts[put].strike * 100
+		fmt.Printf("    last/strike ratio: %6.2f%%\n", lsRatio)
+	}
+}
+
 func main() {
 	flag.Parse()
 
 	if *tickers == "" {
 		fmt.Println("You must specify `-tickers=<ticker1,ticker2,...>`")
 		return
-	}
-
-	if *csv && *header {
-		fmt.Println("share name,share price,expiration,OTM put strike,last,bid,ask")
 	}
 
 	for _, ticker := range strings.Split(*tickers, ",") {
@@ -254,33 +284,7 @@ func main() {
 			fmt.Println("Error finding out of the money put", ticker, strike, err)
 			continue
 		}
-
-		if *csv {
-			fmt.Printf(ticker)
-			fmt.Printf(",")
-			fmt.Printf("%f", sec.price)
-			fmt.Printf(",")
-			fmt.Printf("%s", sec.puts[put].expiration)
-			fmt.Printf(",")
-			fmt.Printf("%f", otmPutStrike(sec))
-			fmt.Printf(",")
-			fmt.Printf("%f", sec.puts[put].last)
-			fmt.Printf(",")
-			fmt.Printf("%f", sec.puts[put].bid)
-			fmt.Printf(",")
-			fmt.Printf("%f", sec.puts[put].ask)
-			fmt.Printf("\n")
-		} else {
-			fmt.Printf("%s price: %6.2f\n", ticker, sec.price)
-			fmt.Printf("   strikes: %v\n", sec.strikes)
-			fmt.Printf("   OTM put\n")
-			fmt.Printf("              expires: %s\n", sec.puts[put].expiration)
-			fmt.Printf("               strike: %6.2f\n", sec.puts[put].strike)
-			fmt.Printf("               last  : %6.2f\n", sec.puts[put].last)
-			fmt.Printf("               bid   : %6.2f\n", sec.puts[put].bid)
-			fmt.Printf("               ask   : %6.2f\n", sec.puts[put].ask)
-			lsRatio := sec.puts[put].last / sec.puts[put].strike * 100
-			fmt.Printf("    last/strike ratio: %6.2f%%\n", lsRatio)
-		}
+		printTicker(ticker, sec, put)
+		*header = false
 	}
 }
