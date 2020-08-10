@@ -12,7 +12,7 @@ import (
 var (
 	tickers = flag.String("tickers", "", "Comma separated list of stocks to get option data for")
 	csv     = flag.Bool("csv", false, "Output in CSV format?")
-	header  = flag.Bool("header", true, "Write CSV header line?")
+	header  = flag.Bool("header", true, "Write header line?")
 )
 
 // symbol looks up a single ticker symbol on Yahoo! Finance and returns the associated JSON data block.
@@ -224,8 +224,27 @@ func put(sec security, strike float64) (int, error) {
 }
 
 func printTicker(ticker string, sec security, put int) {
-	if *csv && *header {
-		fmt.Println("share name,share price,expiration,OTM put strike,last,bid,ask")
+	if *header {
+		if *csv {
+			fmt.Println("share name,share price,expiration,OTM put strike,last,bid,ask")
+		} else {
+			fmt.Printf("%8s", "Ticker")
+			fmt.Printf("  ")
+			fmt.Printf("%8s", "Price")
+			fmt.Printf("  ")
+			fmt.Printf("%10s", "Expiration")
+			fmt.Printf("  ")
+			fmt.Printf("%8s", "Strike")
+			fmt.Printf("  ")
+			fmt.Printf("%8s", "Last")
+			fmt.Printf("  ")
+			fmt.Printf("%8s", "Bid")
+			fmt.Printf("  ")
+			fmt.Printf("%8s", "Ask")
+			fmt.Printf("  ")
+			fmt.Printf("%5s", "Bid/Strike")
+			fmt.Printf("\n")
+		}
 	}
 
 	if *csv {
@@ -244,16 +263,26 @@ func printTicker(ticker string, sec security, put int) {
 		fmt.Printf("%f", sec.puts[put].ask)
 		fmt.Printf("\n")
 	} else {
-		fmt.Printf("%s price: %6.2f\n", ticker, sec.price)
-		fmt.Printf("   strikes: %v\n", sec.strikes)
-		fmt.Printf("   OTM put\n")
-		fmt.Printf("              expires: %s\n", sec.puts[put].expiration)
-		fmt.Printf("               strike: %6.2f\n", sec.puts[put].strike)
-		fmt.Printf("               last  : %6.2f\n", sec.puts[put].last)
-		fmt.Printf("               bid   : %6.2f\n", sec.puts[put].bid)
-		fmt.Printf("               ask   : %6.2f\n", sec.puts[put].ask)
-		lsRatio := sec.puts[put].last / sec.puts[put].strike * 100
-		fmt.Printf("    last/strike ratio: %6.2f%%\n", lsRatio)
+		bsRatio := sec.puts[put].bid / sec.puts[put].strike * 100
+		if bsRatio < 5 {
+			return
+		}
+		fmt.Printf("%8s", ticker)
+		fmt.Printf("  ")
+		fmt.Printf("%8.2f", sec.price)
+		fmt.Printf("  ")
+		fmt.Printf("%10s", sec.puts[put].expiration)
+		fmt.Printf("  ")
+		fmt.Printf("%8.2f", otmPutStrike(sec))
+		fmt.Printf("  ")
+		fmt.Printf("%8.2f", sec.puts[put].last)
+		fmt.Printf("  ")
+		fmt.Printf("%8.2f", sec.puts[put].bid)
+		fmt.Printf("  ")
+		fmt.Printf("%8.2f", sec.puts[put].ask)
+		fmt.Printf("  ")
+		fmt.Printf("%5.1f%%", bsRatio)
+		fmt.Printf("\n")
 	}
 }
 
