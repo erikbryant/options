@@ -1,12 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/erikbryant/options/yahoo"
-	"github.com/erikbryant/web"
-	"regexp"
+	"github.com/erikbryant/options"
 	"strings"
 )
 
@@ -25,25 +22,20 @@ func main() {
 	}
 
 	for _, ticker := range strings.Split(*tickers, ",") {
-		optionContractsStore, err := yahoo.Symbol(ticker)
+		sec, err := options.GetSecurity(ticker)
 		if err != nil {
-			fmt.Println("Error requesting symbol data:", ticker, err)
+			fmt.Println(err)
 			continue
 		}
 
-		sec, err := parseOCS(optionContractsStore)
-		if err != nil {
-			fmt.Println("Error parsing OCS", ticker, err)
-			continue
-		}
-
-		strike := otmPutStrike(sec)
-		put, err := put(sec, strike)
+		strike := options.OtmPutStrike(sec)
+		put, err := options.Put(sec, strike)
 		if err != nil {
 			fmt.Println("Error finding out of the money put", ticker, strike, err)
 			continue
 		}
-		printTicker(ticker, sec, put, *csv, *header)
+
+		options.PrintTicker(sec, strike, put, *csv, *header)
 		*header = false
 	}
 }

@@ -2,7 +2,6 @@ package yahoo
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"github.com/erikbryant/web"
 	"regexp"

@@ -2,27 +2,26 @@ package options
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
-	"github.com/erikbryant/web"
 	"github.com/erikbryant/options/yahoo"
-	"regexp"
-	"strings"
 )
 
-type contract struct {
-	strike     float64
-	last       float64
-	bid        float64
-	ask        float64
-	expiration string
+// Contract holds option data for a single expiration date.
+type Contract struct {
+	Strike     float64
+	Last       float64
+	Bid        float64
+	Ask        float64
+	Expiration string
 }
 
-type security struct {
-	price   float64
-	strikes []float64
-	puts    []contract
-	calls   []contract
+// Security holds data about a security and its options.
+type Security struct {
+	Ticker  string
+	Price   float64
+	Strikes []float64
+	Puts    []Contract
+	Calls   []Contract
 }
 
 // getRawFloat safely extracts val[key]["raw"] as a float64.
@@ -69,10 +68,10 @@ func get(i interface{}, key string) interface{} {
 }
 
 // parseOCS extracts all of the interesting information from the raw Yahoo! format.
-func parseOCS(ocs map[string]interface{}) (security, error) {
-	var sec security
+func parseOCS(ocs map[string]interface{}) (Security, error) {
+	var sec Security
 
-	// The price of the underlying security.
+	// The price of the underlying Security.
 	meta := get(ocs, "meta")
 	if meta == nil {
 		return sec, fmt.Errorf("Meta was nil")
@@ -83,7 +82,7 @@ func parseOCS(ocs map[string]interface{}) (security, error) {
 		return sec, fmt.Errorf("Quote was nil")
 	}
 
-	sec.price = get(quote, "regularMarketPrice").(float64)
+	sec.Price = get(quote, "regularMarketPrice").(float64)
 
 	// The list of strike prices. Arrays cannot be typecast. Make a copy instead.
 	strikes := get(meta, "strikes")
@@ -94,7 +93,7 @@ func parseOCS(ocs map[string]interface{}) (security, error) {
 		if val == nil {
 			return sec, fmt.Errorf("Val was nil")
 		}
-		sec.strikes = append(sec.strikes, val.(float64))
+		sec.Strikes = append(sec.Strikes, val.(float64))
 	}
 
 	contracts := get(ocs, "contracts")
@@ -109,36 +108,56 @@ func parseOCS(ocs map[string]interface{}) (security, error) {
 	}
 
 	for _, val := range puts.([]interface{}) {
-		var put contract
+		var put Contract
 		var err error
 
-		put.strike, err = getRawFloat(val, "strike")
+		put.Strike, err = getRawFloat(val, "strike")
 		if err != nil {
 			return sec, err
 		}
 
-		put.last, err = getRawFloat(val, "lastPrice")
+		put.Last, err = getRawFloat(val, "lastPrice")
 		if err != nil {
 			return sec, err
 		}
 
-		put.bid, err = getRawFloat(val, "bid")
+		put.Bid, err = getRawFloat(val, "bid")
 		if err != nil {
 			return sec, err
 		}
 
-		put.ask, err = getRawFloat(val, "ask")
+		put.Ask, err = getRawFloat(val, "ask")
 		if err != nil {
 			return sec, err
 		}
 
-		put.expiration, err = getFmtString(val, "expiration")
+		put.Expiration, err = getFmtString(val, "expiration")
 		if err != nil {
 			return sec, err
 		}
 
-		sec.puts = append(sec.puts, put)
+		sec.Puts = append(sec.Puts, put)
 	}
+
+	return sec, nil
+}
+
+// GetSecurity gets all of the relevant data into the Security.
+func GetSecurity(ticker string) (Security, error) {
+	var sec Security
+
+	optionContractsStore, err := yahoo.Symbol(ticker)
+	if err != nil {
+		return sec, fmt.Errorf("Error getting security %s %s", ticker, err)
+	}
+
+	sec, err = parseOCS(optionContractsStore)
+	if err != nil {
+		return sec, fmt.Errorf("Error parsing OCS %s", err)
+	}
+
+	// TODO: Make Security an object and have parseOCS operate on a Security instead of returning a new one.
+	sec.Ticker = ticker
 
 	return sec, nil
 }
@@ -153,11 +172,11 @@ func prettify(i interface{}) string {
 	return string(s)
 }
 
-// otmPutStrike finds the nearest put strike that is out-of-the-money.
-func otmPutStrike(sec security) float64 {
+// OtmPutStrike finds the nearest put strike that is out-of-the-money.
+func OtmPutStrike(sec Security) float64 {
 	otm := 0.0
-	for _, strike := range sec.strikes {
-		if strike > sec.price {
+	for _, strike := range sec.Strikes {
+		if strike > sec.Price {
 			return otm
 		}
 		otm = strike
@@ -166,10 +185,10 @@ func otmPutStrike(sec security) float64 {
 	return otm
 }
 
-//put extracts the information for a single put.
-func put(sec security, strike float64) (int, error) {
-	for i, put := range sec.puts {
-		if put.strike == strike {
+// Put extracts the information for a single put.
+func Put(sec Security, strike float64) (int, error) {
+	for i, put := range sec.Puts {
+		if put.Strike == strike {
 			return i, nil
 		}
 	}
@@ -177,7 +196,8 @@ func put(sec security, strike float64) (int, error) {
 	return -1, fmt.Errorf("Did not find a put that matched a strike of %f", strike)
 }
 
-func printTicker(ticker string, sec security, put int, csv, header bool) {
+// PrintTicker prints the option data for a single ticker in CSV or tabulated and with or without a header.
+func PrintTicker(sec Security, strike float64, put int, csv, header bool) {
 	if header {
 		if csv {
 			fmt.Println("share name,share price,expiration,OTM put strike,last,bid,ask")
@@ -196,44 +216,44 @@ func printTicker(ticker string, sec security, put int, csv, header bool) {
 			fmt.Printf("  ")
 			fmt.Printf("%8s", "Ask")
 			fmt.Printf("  ")
-			fmt.Printf("%5s", "Bid/Strike")
+			fmt.Printf("%5s", "B/S ratio")
 			fmt.Printf("\n")
 		}
 	}
 
 	if csv {
-		fmt.Printf(ticker)
+		fmt.Printf(sec.Ticker)
 		fmt.Printf(",")
-		fmt.Printf("%f", sec.price)
+		fmt.Printf("%f", sec.Price)
 		fmt.Printf(",")
-		fmt.Printf("%s", sec.puts[put].expiration)
+		fmt.Printf("%s", sec.Puts[put].Expiration)
 		fmt.Printf(",")
-		fmt.Printf("%f", otmPutStrike(sec))
+		fmt.Printf("%f", strike)
 		fmt.Printf(",")
-		fmt.Printf("%f", sec.puts[put].last)
+		fmt.Printf("%f", sec.Puts[put].Last)
 		fmt.Printf(",")
-		fmt.Printf("%f", sec.puts[put].bid)
+		fmt.Printf("%f", sec.Puts[put].Bid)
 		fmt.Printf(",")
-		fmt.Printf("%f", sec.puts[put].ask)
+		fmt.Printf("%f", sec.Puts[put].Ask)
 		fmt.Printf("\n")
 	} else {
-		bsRatio := sec.puts[put].bid / sec.puts[put].strike * 100
+		bsRatio := sec.Puts[put].Bid / sec.Puts[put].Strike * 100
 		if bsRatio < 5 {
 			return
 		}
-		fmt.Printf("%8s", ticker)
+		fmt.Printf("%8s", sec.Ticker)
 		fmt.Printf("  ")
-		fmt.Printf("%8.2f", sec.price)
+		fmt.Printf("%8.2f", sec.Price)
 		fmt.Printf("  ")
-		fmt.Printf("%10s", sec.puts[put].expiration)
+		fmt.Printf("%10s", sec.Puts[put].Expiration)
 		fmt.Printf("  ")
-		fmt.Printf("%8.2f", otmPutStrike(sec))
+		fmt.Printf("%8.2f", strike)
 		fmt.Printf("  ")
-		fmt.Printf("%8.2f", sec.puts[put].last)
+		fmt.Printf("%8.2f", sec.Puts[put].Last)
 		fmt.Printf("  ")
-		fmt.Printf("%8.2f", sec.puts[put].bid)
+		fmt.Printf("%8.2f", sec.Puts[put].Bid)
 		fmt.Printf("  ")
-		fmt.Printf("%8.2f", sec.puts[put].ask)
+		fmt.Printf("%8.2f", sec.Puts[put].Ask)
 		fmt.Printf("  ")
 		fmt.Printf("%5.1f%%", bsRatio)
 		fmt.Printf("\n")
