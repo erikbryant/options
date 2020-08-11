@@ -22,20 +22,13 @@ func main() {
 	}
 
 	for _, ticker := range strings.Split(*tickers, ",") {
-		sec, err := options.GetSecurity(ticker)
+		security, err := options.GetSecurity(ticker)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Error getting security data", err)
 			continue
 		}
 
-		strike := options.OtmPutStrike(sec)
-		put, err := options.Put(sec, strike)
-		if err != nil {
-			fmt.Println("Error finding out of the money put", ticker, strike, err)
-			continue
-		}
-
-		options.PrintTicker(sec, strike, put, *csv, *header)
+		security.PrintPuts(*csv, *header)
 		*header = false
 	}
 }

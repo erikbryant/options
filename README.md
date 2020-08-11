@@ -17,3 +17,12 @@ Get option data for a single strike on a single expiration date: https://finance
 * Add retry logic to web call(?)
 * Take ticker list input from file
 * Make it interactive?
+
+* Include at-the-money puts
+* Include in-the-money puts (sometimes they are worth it)
+
+* Add error checking to OtmPutStrike() for when the strike is not found
+
+* Add a scan for ITM puts where the bid is greater than the difference between the ITM put strike and the current share price.
+
+* Add a scan for ATM puts

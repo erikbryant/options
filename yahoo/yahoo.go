@@ -9,19 +9,7 @@ import (
 )
 
 // extract extracts the JSON block from the received HTML.
-func extract() {
-
-}
-
-// Symbol looks up a single ticker symbol on Yahoo! Finance and returns the associated JSON data block.
-func Symbol(s string) (map[string]interface{}, error) {
-	url := "https://finance.yahoo.com/quote/" + s + "/options?p=" + s
-
-	response, err := web.Request(url, map[string]string{})
-	if err != nil {
-		return nil, err
-	}
-
+func extractJSON(response string) (map[string]interface{}, error) {
 	var re = regexp.MustCompile("root.App.main = ")
 	json1 := re.Split(response, 2)
 	re = regexp.MustCompile(`;\n}\(this\)\);`)
@@ -29,7 +17,7 @@ func Symbol(s string) (map[string]interface{}, error) {
 
 	dec := json.NewDecoder(strings.NewReader(string(json2[0])))
 	var m interface{}
-	err = dec.Decode(&m)
+	err := dec.Decode(&m)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +30,10 @@ func Symbol(s string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", string(json2[0]))
 	}
 
+	return f, nil
+}
+
+func extractOCS(f map[string]interface{}) (map[string]interface{}, error) {
 	context := f["context"]
 	dispatcher := context.(map[string]interface{})["dispatcher"]
 	stores := dispatcher.(map[string]interface{})["stores"]
@@ -52,4 +44,26 @@ func Symbol(s string) (map[string]interface{}, error) {
 	}
 
 	return optionContractsStore.(map[string]interface{}), nil
+}
+
+// Symbol looks up a single ticker symbol on Yahoo! Finance and returns the associated JSON data block.
+func Symbol(s string) (map[string]interface{}, error) {
+	url := "https://finance.yahoo.com/quote/" + s + "/options?p=" + s
+
+	response, err := web.Request(url, map[string]string{})
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := extractJSON(response)
+	if err != nil {
+		return nil, err
+	}
+
+	ocs, err := extractOCS(f)
+	if err != nil {
+		return nil, err
+	}
+
+	return ocs, nil
 }
