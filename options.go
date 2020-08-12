@@ -1,7 +1,6 @@
 package options
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/yahoo"
@@ -24,14 +23,4 @@ func GetSecurity(ticker string) (security.Security, error) {
 	}
 
 	return security, nil
-}
-
-// prettify formats and prints the input.
-func prettify(i interface{}) string {
-	s, err := json.MarshalIndent(i, "", " ")
-	if err != nil {
-		fmt.Println("Could not Marshal object", i)
-	}
-
-	return string(s)
 }
