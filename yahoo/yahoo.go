@@ -50,6 +50,7 @@ func get(i interface{}, key string) interface{} {
 		return nil
 	}
 
+	// TODO: verify i is map[string]interface{} before casting it.
 	return i.(map[string]interface{})[key]
 }
 
