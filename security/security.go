@@ -174,7 +174,7 @@ func (security *Security) getPutForStrike(strike float64) (int, error) {
 		}
 	}
 
-	return -1, fmt.Errorf("Could not find put for strike %s %f", security.ticker, strike)
+	return -1, fmt.Errorf("Could not find put for strike %s %f", security.Ticker, strike)
 }
 
 // PrintPuts prints the {out|at,in}-the-money option data for a single ticker in CSV or tabulated and with or without a header.
