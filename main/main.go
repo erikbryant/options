@@ -13,11 +13,17 @@ var (
 	header  = flag.Bool("header", true, "Write header line?")
 )
 
+func usage() {
+	fmt.Println("Usage:")
+	fmt.Println()
+	fmt.Println("  options -tickers=<ticker1,ticker2,...> [-csv] [-header]")
+}
+
 func main() {
 	flag.Parse()
 
 	if *tickers == "" {
-		fmt.Println("You must specify `-tickers=<ticker1,ticker2,...>`")
+		usage()
 		return
 	}
 
