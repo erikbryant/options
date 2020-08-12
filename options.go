@@ -2,24 +2,19 @@ package options
 
 import (
 	"fmt"
-	"github.com/erikbryant/options/security"
+	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/yahoo"
 )
 
-// GetSecurity gets all of the relevant data into the security.
-func GetSecurity(ticker string) (security.Security, error) {
-	var security security.Security
+// GetSecurity accumulates stock/option data for the given ticker and returns it in a Security.
+func GetSecurity(ticker string) (sec.Security, error) {
+	var security sec.Security
 
 	security.Ticker = ticker
 
-	optionContractsStore, err := yahoo.Symbol(ticker)
+	security, err := yahoo.Symbol(security)
 	if err != nil {
-		return security, fmt.Errorf("Error getting security %s %s", ticker, err)
-	}
-
-	err = security.ParseOCS(optionContractsStore)
-	if err != nil {
-		return security, fmt.Errorf("Error parsing OCS %s", err)
+		return security, fmt.Errorf("Error getting security %s %s", security.Ticker, err)
 	}
 
 	return security, nil
