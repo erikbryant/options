@@ -24,19 +24,23 @@ type Security struct {
 
 // otmPutStrike finds the nearest put strike that is {outof|at}-the-money.
 func (security *Security) otmPutStrike() (float64, error) {
-	otm := 0.0
+	if len(security.Strikes) == 0 {
+		return -1, fmt.Errorf("There are no strikes %v", security)
+	}
 
-	for _, strike := range security.Strikes {
+	for i, strike := range security.Strikes {
 		if strike == security.Price {
 			return strike, nil
 		}
 		if strike > security.Price {
-			return otm, nil
+			if i > 0 {
+				return security.Strikes[i-1], nil
+			}
+			return -1, fmt.Errorf("Price is lower than lowest strike %v", security)
 		}
-		otm = strike
 	}
 
-	return -1, fmt.Errorf("Could not find an {outof|at}-the-money strike %v", security)
+	return security.Strikes[len(security.Strikes)-1], nil
 }
 
 // itmPutStrike finds the nearest put strike that is in-the-money.
@@ -84,6 +88,10 @@ func (security *Security) PrintPuts(csv, header bool) {
 			fmt.Printf("\n")
 		}
 	}
+
+	// Print two strikes (if they exist)
+	//   {at|outof}-the-money
+	//   in-the-money
 
 	var strikes = []float64{}
 

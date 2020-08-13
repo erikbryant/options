@@ -10,7 +10,12 @@ Get option data for a single strike on a single expiration date: https://finance
 
 ## TODO
 
-* Write tests
+Write tests
+* yahoo
+  * get()
+  * ParseOCS()
+  * extractJSON()
+
 * Send error messages to stderr
 * Add sorting flags
 * Adjust bid/strike ratio to account for time-to-expiration
