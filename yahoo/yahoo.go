@@ -61,36 +61,52 @@ func get(i interface{}, key string) (interface{}, error) {
 	return i.(map[string]interface{})[key], nil
 }
 
-func parseContract(c map[string]interface{}) (sec.Contract, error) {
-	var contract sec.Contract
-	var err error
-
-	contract.Strike, err = getRawFloat(c, "strike")
+// parseContracts extracts the put or call (specified by 'position') options from the OCS.
+func parseContracts(options map[string]interface{}, position string) ([]sec.Contract, error) {
+	optionsObject, err := get(options, position)
 	if err != nil {
-		return contract, err
+		return nil, err
 	}
 
-	contract.Last, err = getRawFloat(c, "lastPrice")
-	if err != nil {
-		return contract, err
+	if optionsObject == nil {
+		return nil, fmt.Errorf("Nil value for contracts %s", position)
 	}
 
-	contract.Bid, err = getRawFloat(c, "bid")
-	if err != nil {
-		return contract, err
+	var contracts []sec.Contract
+
+	for _, option := range optionsObject.([]interface{}) {
+		var contract sec.Contract
+		var err error
+
+		contract.Strike, err = getRawFloat(option, "strike")
+		if err != nil {
+			return nil, err
+		}
+
+		contract.Last, err = getRawFloat(option, "lastPrice")
+		if err != nil {
+			return nil, err
+		}
+
+		contract.Bid, err = getRawFloat(option, "bid")
+		if err != nil {
+			return nil, err
+		}
+
+		contract.Ask, err = getRawFloat(option, "ask")
+		if err != nil {
+			return nil, err
+		}
+
+		contract.Expiration, err = getFmtString(option, "expiration")
+		if err != nil {
+			return nil, err
+		}
+
+		contracts = append(contracts, contract)
 	}
 
-	contract.Ask, err = getRawFloat(c, "ask")
-	if err != nil {
-		return contract, err
-	}
-
-	contract.Expiration, err = getFmtString(c, "expiration")
-	if err != nil {
-		return contract, err
-	}
-
-	return contract, nil
+	return contracts, nil
 }
 
 // parseOCS extracts all of the interesting information from the raw Yahoo! format.
@@ -141,38 +157,14 @@ func parseOCS(ocs map[string]interface{}, security sec.Security) (sec.Security, 
 		return security, fmt.Errorf("Contracts was nil")
 	}
 
-	// The puts.
-	puts, err := get(contracts, "puts")
+	security.Puts, err = parseContracts(contracts.(map[string]interface{}), "puts")
 	if err != nil {
 		return security, err
 	}
-	if puts == nil {
-		return security, fmt.Errorf("Puts was nil")
-	}
 
-	for _, c := range puts.([]interface{}) {
-		contract, err := parseContract(c.(map[string]interface{}))
-		if err != nil {
-			return security, err
-		}
-		security.Puts = append(security.Puts, contract)
-	}
-
-	// The calls.
-	calls, err := get(contracts, "calls")
+	security.Calls, err = parseContracts(contracts.(map[string]interface{}), "calls")
 	if err != nil {
 		return security, err
-	}
-	if calls == nil {
-		return security, fmt.Errorf("Calls was nil")
-	}
-
-	for _, c := range calls.([]interface{}) {
-		contract, err := parseContract(c.(map[string]interface{}))
-		if err != nil {
-			return security, err
-		}
-		security.Calls = append(security.Calls, contract)
 	}
 
 	return security, nil

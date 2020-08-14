@@ -291,6 +291,10 @@ func TestGetFmtString(t *testing.T) {
 // 	}
 // }
 
+func TestParseContracts(t *testing.T) {
+
+}
+
 func TestParseOCS(t *testing.T) {
 
 }
