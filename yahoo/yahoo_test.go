@@ -295,7 +295,11 @@ func TestParseContracts(t *testing.T) {
 
 }
 
-func TestParseOCS(t *testing.T) {
+func TestParsePrice(t *testing.T) {
+
+}
+
+func TestParseStrikes(t *testing.T) {
 
 }
 

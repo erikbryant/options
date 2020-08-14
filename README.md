@@ -14,7 +14,8 @@ Write tests
 * yahoo
   * get()
   * ParseContracts()
-  * ParseOCS()
+  * ParsePrice()
+  * ParseStrikes()
 
 * Send errors to stderr
 * Add sorting flags

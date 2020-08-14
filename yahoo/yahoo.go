@@ -62,7 +62,16 @@ func get(i interface{}, key string) (interface{}, error) {
 }
 
 // parseContracts extracts the put or call (specified by 'position') options from the OCS.
-func parseContracts(options map[string]interface{}, position string) ([]sec.Contract, error) {
+func parseContracts(ocs map[string]interface{}, position string) ([]sec.Contract, error) {
+	// Puts and calls.
+	options, err := get(ocs, "contracts")
+	if err != nil {
+		return nil, err
+	}
+	if options == nil {
+		return nil, fmt.Errorf("Contracts was nil")
+	}
+
 	optionsObject, err := get(options, position)
 	if err != nil {
 		return nil, err
@@ -109,60 +118,77 @@ func parseContracts(options map[string]interface{}, position string) ([]sec.Cont
 	return contracts, nil
 }
 
-// parseOCS extracts all of the interesting information from the raw Yahoo! format.
-func parseOCS(ocs map[string]interface{}, security sec.Security) (sec.Security, error) {
-	// The price of the underlying security.
+// parsePrice extracts the security price from the OCS.
+func parsePrice(ocs map[string]interface{}) (float64, error) {
 	meta, err := get(ocs, "meta")
 	if err != nil {
-		return security, err
+		return 0, err
 	}
 	if meta == nil {
-		return security, fmt.Errorf("Meta was nil")
+		return 0, fmt.Errorf("Meta was nil")
 	}
 
 	quote, err := get(meta, "quote")
 	if err != nil {
-		return security, err
+		return 0, err
 	}
 	if quote == nil {
-		return security, fmt.Errorf("Quote was nil")
+		return 0, fmt.Errorf("Quote was nil")
 	}
 
 	tmp, err := get(quote, "regularMarketPrice")
 	if err != nil {
-		return security, err
+		return 0, err
 	}
-	security.Price = tmp.(float64)
+	return tmp.(float64), nil
+}
 
-	// The list of strike prices. Arrays cannot be typecast. Make a copy instead.
+// parseStrikes extracts the strike prices from the OCS.
+func parseStrikes(ocs map[string]interface{}) ([]float64, error) {
+	meta, err := get(ocs, "meta")
+	if err != nil {
+		return nil, err
+	}
+
 	strikes, err := get(meta, "strikes")
 	if err != nil {
-		return security, err
+		return nil, err
 	}
 	if strikes == nil {
-		return security, fmt.Errorf("Strikes was nil")
+		return nil, fmt.Errorf("Strikes was nil")
 	}
+
+	var strikePrices []float64
 	for _, val := range strikes.([]interface{}) {
 		if val == nil {
-			return security, fmt.Errorf("Val was nil")
+			return nil, fmt.Errorf("Strike value was nil")
 		}
-		security.Strikes = append(security.Strikes, val.(float64))
+		strikePrices = append(strikePrices, val.(float64))
 	}
 
-	contracts, err := get(ocs, "contracts")
+	return strikePrices, nil
+}
+
+// parseOCS extracts all of the interesting information from the raw Yahoo! format.
+func parseOCS(ocs map[string]interface{}, security sec.Security) (sec.Security, error) {
+	var err error
+
+	security.Puts, err = parseContracts(ocs, "puts")
 	if err != nil {
 		return security, err
 	}
-	if contracts == nil {
-		return security, fmt.Errorf("Contracts was nil")
-	}
 
-	security.Puts, err = parseContracts(contracts.(map[string]interface{}), "puts")
+	security.Calls, err = parseContracts(ocs, "calls")
 	if err != nil {
 		return security, err
 	}
 
-	security.Calls, err = parseContracts(contracts.(map[string]interface{}), "calls")
+	security.Price, err = parsePrice(ocs)
+	if err != nil {
+		return security, err
+	}
+
+	security.Strikes, err = parseStrikes(ocs)
 	if err != nil {
 		return security, err
 	}
