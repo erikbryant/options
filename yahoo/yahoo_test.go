@@ -296,7 +296,50 @@ func TestParseOCS(t *testing.T) {
 }
 
 func TestExtractJSON(t *testing.T) {
+	testCases := []struct {
+		text        string
+		shouldError bool
+	}{
+		// Success
+		{
+			headerToken + "{\"key\": \"val\"}" + ";\n}(this));",
+			false,
+		},
+		// No header token
+		{
+			"foo",
+			true,
+		},
+		// No footer token
+		{
+			headerToken + " foo",
+			true,
+		},
+		// Not valid JSON
+		{
+			headerToken + "{45}" + ";\n}(this));",
+			true,
+		},
+	}
 
+	for _, testCase := range testCases {
+		answer, err := extractJSON(testCase.text)
+		if testCase.shouldError {
+			if err == nil {
+				t.Errorf("For %s it should have errored but did not", testCase.text)
+			}
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("For %s got unexpected error %s", testCase.text, err)
+			continue
+		}
+
+		if answer["key"] != "val" {
+			t.Errorf("For %s expected val got %s", testCase.text, answer)
+		}
+	}
 }
 
 func TestExtractOCS(t *testing.T) {
@@ -384,7 +427,7 @@ func TestExtractOCS(t *testing.T) {
 		answer, err := extractOCS(testCase.json)
 		if testCase.shouldError {
 			if err == nil {
-				t.Errorf("Got unexpected error %s", err)
+				t.Errorf("For %s it should have errored but did not", testCase.key)
 			}
 			continue
 		}

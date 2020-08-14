@@ -61,8 +61,40 @@ func get(i interface{}, key string) (interface{}, error) {
 	return i.(map[string]interface{})[key], nil
 }
 
-// ParseOCS extracts all of the interesting information from the raw Yahoo! format.
-func ParseOCS(ocs map[string]interface{}, security sec.Security) (sec.Security, error) {
+func parseContract(c map[string]interface{}) (sec.Contract, error) {
+	var contract sec.Contract
+	var err error
+
+	contract.Strike, err = getRawFloat(c, "strike")
+	if err != nil {
+		return contract, err
+	}
+
+	contract.Last, err = getRawFloat(c, "lastPrice")
+	if err != nil {
+		return contract, err
+	}
+
+	contract.Bid, err = getRawFloat(c, "bid")
+	if err != nil {
+		return contract, err
+	}
+
+	contract.Ask, err = getRawFloat(c, "ask")
+	if err != nil {
+		return contract, err
+	}
+
+	contract.Expiration, err = getFmtString(c, "expiration")
+	if err != nil {
+		return contract, err
+	}
+
+	return contract, nil
+}
+
+// parseOCS extracts all of the interesting information from the raw Yahoo! format.
+func parseOCS(ocs map[string]interface{}, security sec.Security) (sec.Security, error) {
 	// The price of the underlying security.
 	meta, err := get(ocs, "meta")
 	if err != nil {
@@ -118,48 +150,52 @@ func ParseOCS(ocs map[string]interface{}, security sec.Security) (sec.Security, 
 		return security, fmt.Errorf("Puts was nil")
 	}
 
-	for _, val := range puts.([]interface{}) {
-		var put sec.Contract
-		var err error
-
-		put.Strike, err = getRawFloat(val, "strike")
+	for _, c := range puts.([]interface{}) {
+		contract, err := parseContract(c.(map[string]interface{}))
 		if err != nil {
 			return security, err
 		}
+		security.Puts = append(security.Puts, contract)
+	}
 
-		put.Last, err = getRawFloat(val, "lastPrice")
+	// The calls.
+	calls, err := get(contracts, "calls")
+	if err != nil {
+		return security, err
+	}
+	if calls == nil {
+		return security, fmt.Errorf("Calls was nil")
+	}
+
+	for _, c := range calls.([]interface{}) {
+		contract, err := parseContract(c.(map[string]interface{}))
 		if err != nil {
 			return security, err
 		}
-
-		put.Bid, err = getRawFloat(val, "bid")
-		if err != nil {
-			return security, err
-		}
-
-		put.Ask, err = getRawFloat(val, "ask")
-		if err != nil {
-			return security, err
-		}
-
-		put.Expiration, err = getFmtString(val, "expiration")
-		if err != nil {
-			return security, err
-		}
-
-		security.Puts = append(security.Puts, put)
+		security.Calls = append(security.Calls, contract)
 	}
 
 	return security, nil
 }
 
+const headerToken = "root.App.main = "
+const footerToken = `;\n}\(this\)\);`
+
 // extractJSON extracts the JSON block from the received HTML.
 func extractJSON(response string) (map[string]interface{}, error) {
 	// Isolate the JSON from the surrounding HTML.
-	var re = regexp.MustCompile("root.App.main = ")
-	tmp := re.Split(response, 2)
-	re = regexp.MustCompile(`;\n}\(this\)\);`)
-	jsonString := re.Split(tmp[1], 2)[0]
+	var re = regexp.MustCompile(headerToken)
+	removeHeader := re.Split(response, 2)
+	if len(removeHeader) != 2 {
+		return nil, fmt.Errorf("Failed to find header token %s", response)
+	}
+
+	re = regexp.MustCompile(footerToken)
+	removeFooter := re.Split(removeHeader[1], 2)
+	if len(removeFooter) != 2 {
+		return nil, fmt.Errorf("Failed to find footer token %s", response)
+	}
+	jsonString := removeFooter[0]
 
 	if jsonString[0] != '{' {
 		return nil, fmt.Errorf("JSON string is missing the '{' %s", response)
@@ -170,8 +206,8 @@ func extractJSON(response string) (map[string]interface{}, error) {
 	}
 
 	// Convert the string form to JSON object form.
-	dec := json.NewDecoder(strings.NewReader(string(jsonString)))
 	var m interface{}
+	dec := json.NewDecoder(strings.NewReader(string(jsonString)))
 	err := dec.Decode(&m)
 	if err != nil {
 		return nil, err
@@ -234,7 +270,7 @@ func Symbol(security sec.Security) (sec.Security, error) {
 		return security, err
 	}
 
-	security, err = ParseOCS(ocs, security)
+	security, err = parseOCS(ocs, security)
 	if err != nil {
 		return security, fmt.Errorf("Error parsing OCS %s", err)
 	}
