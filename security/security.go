@@ -2,6 +2,8 @@ package security
 
 import (
 	"fmt"
+	"io/ioutil"
+	"strings"
 )
 
 // Contract holds option data for a single expiration date.
@@ -13,13 +15,36 @@ type Contract struct {
 	Expiration string
 }
 
+// DayRange represents a single (historical) trading day.
+type DayRange struct {
+	Date   string
+	Open   float64
+	High   float64
+	Low    float64
+	Close  float64
+	Volume float64
+}
+
 // Security holds data about a security and its options.
 type Security struct {
 	Ticker  string
+	Close   DayRange
 	Price   float64
 	Strikes []float64
 	Puts    []Contract
 	Calls   []Contract
+}
+
+// GetFile reads in the contents of a file.
+func GetFile(file string) ([]string, error) {
+	contents, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to read file %s", file)
+	}
+
+	securities := strings.Split(string(contents), "\n")
+
+	return securities, nil
 }
 
 // otmPutStrike finds the nearest put strike that is {outof|at}-the-money.

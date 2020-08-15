@@ -1,21 +1,34 @@
 package eoddata
 
 import (
-	"fmt"
 	sec "github.com/erikbryant/options/security"
-	"github.com/erikbryant/web"
+	"strings"
 )
 
-// GetSymbols loads all known US equity symbols.
-func GetSymbols() (map[string]sec.Security, error) {
-	url := "https://www.eoddata.com/data/filedownload.aspx?g=1&sd=20200813&ed=20200813&d=4&p=0&o=d&k=vubvanxsz4"
-
-	response, err := web.Request(url, map[string]string{})
+// USEquities loads all known US equity symbols.
+func USEquities(useFile string) (map[string]sec.Security, error) {
+	equities, err := sec.GetFile(useFile)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(response)
+	header := true
+	securities := make(map[string]sec.Security)
+	for _, equity := range equities[1:] {
+		if header {
+			header = false
+			continue
+		}
 
-	return nil, nil
+		if equity == "" {
+			continue
+		}
+
+		close := strings.Split(equity, ",")
+		var security sec.Security
+		security.Ticker = close[0]
+		securities[close[0]] = security
+	}
+
+	return securities, nil
 }

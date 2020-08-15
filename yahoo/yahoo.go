@@ -5,6 +5,7 @@ import (
 	"fmt"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
+	"io/ioutil"
 	"regexp"
 	"strings"
 )
@@ -16,7 +17,7 @@ func getRawFloat(i interface{}, key string) (float64, error) {
 		return -1, err
 	}
 	if val == nil {
-		return -1, fmt.Errorf("%s was nil", key)
+		return 0, nil
 	}
 
 	raw, err := get(val, "raw")
@@ -76,7 +77,6 @@ func parseContracts(ocs map[string]interface{}, position string) ([]sec.Contract
 	if err != nil {
 		return nil, err
 	}
-
 	if optionsObject == nil {
 		return nil, fmt.Errorf("Nil value for contracts %s", position)
 	}
@@ -269,18 +269,90 @@ func extractOCS(jsonObject map[string]interface{}) (map[string]interface{}, erro
 	return optionContractsStore.(map[string]interface{}), nil
 }
 
+// hasOptions checks if there are options for this security.
+func hasOptions(jsonObject map[string]interface{}) bool {
+	if jsonObject == nil {
+		return false
+	}
+
+	context := jsonObject["context"]
+	if context == nil {
+		return false
+	}
+
+	dispatcher := context.(map[string]interface{})["dispatcher"]
+	if dispatcher == nil {
+		return false
+	}
+	stores := dispatcher.(map[string]interface{})["stores"]
+	if stores == nil {
+		return false
+	}
+
+	ocs := stores.(map[string]interface{})["OptionContractsStore"]
+	if ocs == nil {
+		return false
+	}
+
+	contracts, err := get(ocs, "contracts")
+	if err != nil {
+		return false
+	}
+	if contracts == nil {
+		return false
+	}
+
+	puts, err := get(contracts, "puts")
+	if err != nil {
+		return false
+	}
+	if puts == nil {
+		return false
+	}
+	if len(puts.([]interface{})) == 0 {
+		return false
+	}
+
+	calls, err := get(contracts, "calls")
+	if err != nil {
+		return false
+	}
+	if calls == nil {
+		return false
+	}
+	if len(calls.([]interface{})) == 0 {
+		return false
+	}
+
+	return true
+}
+
 // Symbol looks up a single ticker symbol on Yahoo! Finance and returns the associated JSON data block.
 func Symbol(security sec.Security) (sec.Security, error) {
 	url := "https://finance.yahoo.com/quote/" + security.Ticker + "/options?p=" + security.Ticker
 
-	response, err := web.Request(url, map[string]string{})
+	response, err := web.Request2(url, map[string]string{})
 	if err != nil {
 		return security, err
 	}
 
-	f, err := extractJSON(response)
+	if response.StatusCode != 200 {
+		return security, fmt.Errorf("Unexpected response code %d getting '%s'", response.StatusCode, security.Ticker)
+	}
+
+	s, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return security, err
+	}
+
+	f, err := extractJSON(string(s))
+	if err != nil {
+		return security, err
+	}
+
+	// If there are no options for this security, we are done.
+	if !hasOptions(f) {
+		return security, nil
 	}
 
 	ocs, err := extractOCS(f)
@@ -294,4 +366,30 @@ func Symbol(security sec.Security) (sec.Security, error) {
 	}
 
 	return security, nil
+}
+
+// SymbolHasOptions checks to see if options are available for that symbol.
+func SymbolHasOptions(ticker string) (bool, error) {
+	url := "https://finance.yahoo.com/quote/" + ticker + "/options?p=" + ticker
+
+	response, err := web.Request2(url, map[string]string{})
+	if err != nil {
+		return false, err
+	}
+
+	if response.StatusCode != 200 {
+		return false, fmt.Errorf("Unexpected response code %d getting '%s'", response.StatusCode, ticker)
+	}
+
+	s, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return false, err
+	}
+
+	f, err := extractJSON(string(s))
+	if err != nil {
+		return false, err
+	}
+
+	return hasOptions(f), nil
 }

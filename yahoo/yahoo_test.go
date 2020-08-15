@@ -30,52 +30,52 @@ func TestGetRawFloat(t *testing.T) {
 					"raw": 3.2,
 				},
 			},
-			"foo",
-			3.2,
-			true,
+			"foo2",
+			0,
+			false,
 		},
 		// Missing the second-level key
 		{
 			map[string]interface{}{
-				"foo": map[string]interface{}{
+				"foo3": map[string]interface{}{
 					"rare": 3.2,
 				},
 			},
-			"foo",
+			"foo3",
 			3.2,
 			true,
 		},
 		// Nil
 		{
 			nil,
-			"foo",
-			3.2,
-			true,
+			"foo4",
+			0,
+			false,
 		},
 		// Nil map
 		{
 			map[string]interface{}{},
-			"foo",
-			3.2,
-			true,
+			"foo5",
+			0,
+			false,
 		},
 		// Nil second-level map
 		{
 			map[string]interface{}{
-				"foo": nil,
+				"foo6": nil,
 			},
-			"foo",
-			3.2,
-			true,
+			"foo6",
+			0,
+			false,
 		},
 		// Wrong type for float
 		{
 			map[string]interface{}{
-				"foo": map[string]interface{}{
+				"foo7": map[string]interface{}{
 					"raw": nil,
 				},
 			},
-			"foo",
+			"foo7",
 			3.2,
 			true,
 		},
