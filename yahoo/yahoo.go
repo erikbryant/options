@@ -341,16 +341,11 @@ func Symbol(security sec.Security, expiration string) (sec.Security, error) {
 	}
 
 	response, err := web.Request2(url, map[string]string{})
-	if err != nil || response.StatusCode != 200 {
-		// Retry
-		time.Sleep(500 * time.Millisecond)
-		response, err = web.Request2(url, map[string]string{})
-		if err != nil {
-			return security, err
-		}
-		if response.StatusCode != 200 {
-			return security, fmt.Errorf("Unexpected response code %d getting symbol '%s'", response.StatusCode, security.Ticker)
-		}
+	if err != nil {
+		return security, err
+	}
+	if response.StatusCode != 200 {
+		return security, fmt.Errorf("Unexpected response code %d getting symbol '%s'", response.StatusCode, security.Ticker)
 	}
 
 	s, err := ioutil.ReadAll(response.Body)
@@ -386,16 +381,11 @@ func SymbolHasOptions(ticker string) (bool, error) {
 	url := "https://finance.yahoo.com/quote/" + ticker + "/options?p=" + ticker
 
 	response, err := web.Request2(url, map[string]string{})
-	if err != nil || response.StatusCode != 200 {
-		// Retry
-		time.Sleep(500 * time.Millisecond)
-		response, err = web.Request2(url, map[string]string{})
-		if err != nil {
-			return false, err
-		}
-		if response.StatusCode != 200 {
-			return false, fmt.Errorf("Unexpected response code %d getting options '%s'", response.StatusCode, ticker)
-		}
+	if err != nil {
+		return false, err
+	}
+	if response.StatusCode != 200 {
+		return false, fmt.Errorf("Unexpected response code %d getting options '%s'", response.StatusCode, ticker)
 	}
 
 	s, err := ioutil.ReadAll(response.Body)
