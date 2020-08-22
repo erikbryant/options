@@ -44,6 +44,11 @@ func GetFile(file string) ([]string, error) {
 
 	securities := strings.Split(string(contents), "\n")
 
+	// Strip trailing blank lines
+	for securities[len(securities)-1] == "" {
+		securities = securities[:len(securities)-1]
+	}
+
 	return securities, nil
 }
 
@@ -91,25 +96,35 @@ func (security *Security) getPutForStrike(strike float64) (int, error) {
 
 // PrintPuts prints the {out|at,in}-the-money option data for a single ticker in CSV or tabulated and with or without a header.
 func (security *Security) PrintPuts(csv, header bool) {
+	var separator string
+
+	if csv {
+		separator = ","
+	} else {
+		separator = "  "
+	}
+
 	if header {
 		if csv {
-			fmt.Println("share name,share price,expiration,OTM put strike,last,bid,ask")
+			fmt.Println("share name,share price,expiration,strike,last,bid,ask,b/s ratio,url")
 		} else {
 			fmt.Printf("%8s", "Ticker")
-			fmt.Printf("  ")
+			fmt.Printf(separator)
 			fmt.Printf("%8s", "Price")
-			fmt.Printf("  ")
+			fmt.Printf(separator)
 			fmt.Printf("%10s", "Expiration")
-			fmt.Printf("  ")
+			fmt.Printf(separator)
 			fmt.Printf("%8s", "Strike")
-			fmt.Printf("  ")
+			fmt.Printf(separator)
 			fmt.Printf("%8s", "Last")
-			fmt.Printf("  ")
+			fmt.Printf(separator)
 			fmt.Printf("%8s", "Bid")
-			fmt.Printf("  ")
+			fmt.Printf(separator)
 			fmt.Printf("%8s", "Ask")
-			fmt.Printf("  ")
+			fmt.Printf(separator)
 			fmt.Printf("%5s", "B/S ratio")
+			fmt.Printf(separator)
+			fmt.Printf("%s", "URL")
 			fmt.Printf("\n")
 		}
 	}
@@ -133,11 +148,15 @@ func (security *Security) PrintPuts(csv, header bool) {
 	for _, strike := range strikes {
 		put, err := security.getPutForStrike(strike)
 		if err != nil {
-			fmt.Println(err)
+			// fmt.Println(err)
 			continue
 		}
 
 		bsRatio := security.Puts[put].Bid / security.Puts[put].Strike * 100
+
+		if bsRatio < 4.0 {
+			continue
+		}
 
 		if security.Puts[put].Strike > security.Price {
 			// Sometimes in-the-money strikes have such high bids that
@@ -148,38 +167,25 @@ func (security *Security) PrintPuts(csv, header bool) {
 			}
 		}
 
-		if csv {
-			fmt.Printf(security.Ticker)
-			fmt.Printf(",")
-			fmt.Printf("%f", security.Price)
-			fmt.Printf(",")
-			fmt.Printf("%s", security.Puts[put].Expiration)
-			fmt.Printf(",")
-			fmt.Printf("%f", security.Puts[put].Strike)
-			fmt.Printf(",")
-			fmt.Printf("%f", security.Puts[put].Last)
-			fmt.Printf(",")
-			fmt.Printf("%f", security.Puts[put].Bid)
-			fmt.Printf(",")
-			fmt.Printf("%f", security.Puts[put].Ask)
-			fmt.Printf("\n")
-		} else {
-			fmt.Printf("%8s", security.Ticker)
-			fmt.Printf("  ")
-			fmt.Printf("%8.2f", security.Price)
-			fmt.Printf("  ")
-			fmt.Printf("%10s", security.Puts[put].Expiration)
-			fmt.Printf("  ")
-			fmt.Printf("%8.2f", security.Puts[put].Strike)
-			fmt.Printf("  ")
-			fmt.Printf("%8.2f", security.Puts[put].Last)
-			fmt.Printf("  ")
-			fmt.Printf("%8.2f", security.Puts[put].Bid)
-			fmt.Printf("  ")
-			fmt.Printf("%8.2f", security.Puts[put].Ask)
-			fmt.Printf("  ")
-			fmt.Printf("%5.1f%%", bsRatio)
-			fmt.Printf("\n")
-		}
+		url := "https://snapshot.fidelity.com/fidresearch/snapshot/landing.jhtml#/research?symbol=" + security.Ticker
+
+		fmt.Printf("%8s", security.Ticker)
+		fmt.Printf(separator)
+		fmt.Printf("%8.2f", security.Price)
+		fmt.Printf(separator)
+		fmt.Printf("%10s", security.Puts[put].Expiration)
+		fmt.Printf(separator)
+		fmt.Printf("%8.2f", security.Puts[put].Strike)
+		fmt.Printf(separator)
+		fmt.Printf("%8.2f", security.Puts[put].Last)
+		fmt.Printf(separator)
+		fmt.Printf("%8.2f", security.Puts[put].Bid)
+		fmt.Printf(separator)
+		fmt.Printf("%8.2f", security.Puts[put].Ask)
+		fmt.Printf(separator)
+		fmt.Printf("%8.1f%%", bsRatio)
+		fmt.Printf(separator)
+		fmt.Printf(url)
+		fmt.Printf("\n")
 	}
 }
