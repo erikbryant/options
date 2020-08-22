@@ -36,7 +36,7 @@ func SecuritiesWithOptions(optionsFile string) ([]string, error) {
 }
 
 // FindSecuritiesWithOptions re-scans all known securities to see which have options.
-func FindSecuritiesWithOptions(useFile string) ([]string, error) {
+func FindSecuritiesWithOptions(useFile, optionsFile string) ([]string, error) {
 	securities, err := eoddata.USEquities(useFile)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading US equity list %s", err)
@@ -48,8 +48,8 @@ func FindSecuritiesWithOptions(useFile string) ([]string, error) {
 	}
 	sort.Strings(keys)
 
-	optionsFile := strings.Replace(useFile, ".csv", ".options.csv", 1)
-	f, err := os.Create(optionsFile)
+	outFile := strings.Replace(useFile, ".csv", ".options.csv", 1)
+	f, err := os.Create(outFile)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +60,23 @@ func FindSecuritiesWithOptions(useFile string) ([]string, error) {
 		return nil, err
 	}
 
+	hasOptions, err := SecuritiesWithOptions(optionsFile)
+	if err != nil {
+		return nil, err
+	}
+
+	optionable := make(map[string]string)
+	for _, o := range hasOptions {
+		optionable[o] = o
+	}
+
 	options := []string{}
 	for _, key := range keys {
+		// If we already know it has options, skip it
+		if optionable[key] != "" {
+			continue
+		}
+
 		hasOptions, err := yahoo.SymbolHasOptions(key)
 		if err != nil {
 			fmt.Println(err)

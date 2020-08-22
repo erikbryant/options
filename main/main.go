@@ -23,12 +23,12 @@ var (
 func usage() {
 	fmt.Println("Usage:")
 	fmt.Println()
-	fmt.Println("  Generate the list of all tickers with options")
-	fmt.Println("    options -regenerate -useFile <USE_nnnnnnnn.csv>")
+	fmt.Println("  Generate the list of all tickers with options (skipping known options)")
+	fmt.Println("    options -regenerate -useFile <USE_nnnnnnnn.csv> -optionsFile options.csv")
 	fmt.Println("  Find all option plays")
-	fmt.Println("    options -all [-csv] [-header] [-expiration 20200821]")
+	fmt.Println("    options -all -optionsFile options.csv [-csv] [-header] [-expiration 20200821]")
 	fmt.Println("  Find interesting option plays")
-	fmt.Println("    options -all [-csv] [-header] [-expiration 20200821] [-maxStrike 32.20] [-minYield 4.5]")
+	fmt.Println("    options -all -optionsFile options.csv [-csv] [-header] [-expiration 20200821] [-maxStrike 32.20] [-minYield 4.5]")
 	fmt.Println("  Find interesting option plays, limited to these tickers")
 	fmt.Println("    options -tickers=<ticker1,ticker2,...> [-csv] [-header] [-expiration 20200821] [-maxStrike 32.20] [-minYield 4.5]")
 }
@@ -37,7 +37,7 @@ func main() {
 	flag.Parse()
 
 	if *regenerate {
-		_, err := options.FindSecuritiesWithOptions(*useFile)
+		_, err := options.FindSecuritiesWithOptions(*useFile, *optionsFile)
 		if err != nil {
 			fmt.Println(err)
 		}
