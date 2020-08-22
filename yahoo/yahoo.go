@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // getRawFloat safely extracts val[key]["raw"] as a float64.
@@ -328,16 +329,28 @@ func hasOptions(jsonObject map[string]interface{}) bool {
 }
 
 // Symbol looks up a single ticker symbol on Yahoo! Finance and returns the associated JSON data block.
-func Symbol(security sec.Security) (sec.Security, error) {
+func Symbol(security sec.Security, expiration string) (sec.Security, error) {
 	url := "https://finance.yahoo.com/quote/" + security.Ticker + "/options?p=" + security.Ticker
 
-	response, err := web.Request2(url, map[string]string{})
-	if err != nil {
-		return security, err
+	if expiration != "" {
+		t, err := time.Parse("20060102", expiration)
+		if err != nil {
+			return security, err
+		}
+		url = fmt.Sprintf("%s&date=%d", url, t.Unix())
 	}
 
-	if response.StatusCode != 200 {
-		return security, fmt.Errorf("Unexpected response code %d getting '%s'", response.StatusCode, security.Ticker)
+	response, err := web.Request2(url, map[string]string{})
+	if err != nil || response.StatusCode != 200 {
+		// Retry
+		time.Sleep(500 * time.Millisecond)
+		response, err = web.Request2(url, map[string]string{})
+		if err != nil {
+			return security, err
+		}
+		if response.StatusCode != 200 {
+			return security, fmt.Errorf("Unexpected response code %d getting symbol '%s'", response.StatusCode, security.Ticker)
+		}
 	}
 
 	s, err := ioutil.ReadAll(response.Body)
@@ -373,12 +386,16 @@ func SymbolHasOptions(ticker string) (bool, error) {
 	url := "https://finance.yahoo.com/quote/" + ticker + "/options?p=" + ticker
 
 	response, err := web.Request2(url, map[string]string{})
-	if err != nil {
-		return false, err
-	}
-
-	if response.StatusCode != 200 {
-		return false, fmt.Errorf("Unexpected response code %d getting '%s'", response.StatusCode, ticker)
+	if err != nil || response.StatusCode != 200 {
+		// Retry
+		time.Sleep(500 * time.Millisecond)
+		response, err = web.Request2(url, map[string]string{})
+		if err != nil {
+			return false, err
+		}
+		if response.StatusCode != 200 {
+			return false, fmt.Errorf("Unexpected response code %d getting options '%s'", response.StatusCode, ticker)
+		}
 	}
 
 	s, err := ioutil.ReadAll(response.Body)

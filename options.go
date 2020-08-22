@@ -11,12 +11,12 @@ import (
 )
 
 // Security accumulates stock/option data for the given ticker and returns it in a Security.
-func Security(ticker string) (sec.Security, error) {
+func Security(ticker, expiration string) (sec.Security, error) {
 	var security sec.Security
 
 	security.Ticker = ticker
 
-	security, err := yahoo.Symbol(security)
+	security, err := yahoo.Symbol(security, expiration)
 	if err != nil {
 		return security, fmt.Errorf("Error getting security %s %s", security.Ticker, err)
 	}
