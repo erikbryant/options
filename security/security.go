@@ -99,20 +99,20 @@ func (security *Security) PrintPuts(csv, header bool) {
 	var separator string
 
 	if csv {
-		separator = ","
+		separator = ", "
 	} else {
 		separator = "  "
 	}
 
 	if header {
 		if csv {
-			fmt.Println("share name,share price,expiration,strike,last,bid,ask,b/s ratio,url")
+			fmt.Println("share name,expiration,share price,strike,last,bid,ask,b/s ratio,url")
 		} else {
 			fmt.Printf("%8s", "Ticker")
 			fmt.Printf(separator)
-			fmt.Printf("%8s", "Price")
-			fmt.Printf(separator)
 			fmt.Printf("%10s", "Expiration")
+			fmt.Printf(separator)
+			fmt.Printf("%8s", "Price")
 			fmt.Printf(separator)
 			fmt.Printf("%8s", "Strike")
 			fmt.Printf(separator)
@@ -171,9 +171,9 @@ func (security *Security) PrintPuts(csv, header bool) {
 
 		fmt.Printf("%8s", security.Ticker)
 		fmt.Printf(separator)
-		fmt.Printf("%8.2f", security.Price)
-		fmt.Printf(separator)
 		fmt.Printf("%10s", security.Puts[put].Expiration)
+		fmt.Printf(separator)
+		fmt.Printf("%8.2f", security.Price)
 		fmt.Printf(separator)
 		fmt.Printf("%8.2f", security.Puts[put].Strike)
 		fmt.Printf(separator)
