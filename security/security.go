@@ -105,28 +105,26 @@ func (security *Security) PrintPuts(csv, header bool) {
 	}
 
 	if header {
-		if csv {
-			fmt.Println("share name,expiration,share price,strike,last,bid,ask,b/s ratio,url")
-		} else {
-			fmt.Printf("%8s", "Ticker")
-			fmt.Printf(separator)
-			fmt.Printf("%10s", "Expiration")
-			fmt.Printf(separator)
-			fmt.Printf("%8s", "Price")
-			fmt.Printf(separator)
-			fmt.Printf("%8s", "Strike")
-			fmt.Printf(separator)
-			fmt.Printf("%8s", "Last")
-			fmt.Printf(separator)
-			fmt.Printf("%8s", "Bid")
-			fmt.Printf(separator)
-			fmt.Printf("%8s", "Ask")
-			fmt.Printf(separator)
-			fmt.Printf("%5s", "B/S ratio")
-			fmt.Printf(separator)
-			fmt.Printf("%s", "URL")
-			fmt.Printf("\n")
-		}
+		fmt.Printf("%8s", "Ticker")
+		fmt.Printf(separator)
+		fmt.Printf("%10s", "Expiration")
+		fmt.Printf(separator)
+		fmt.Printf("%8s", "Price")
+		fmt.Printf(separator)
+		fmt.Printf("%8s", "Strike")
+		fmt.Printf(separator)
+		fmt.Printf("%8s", "Last")
+		fmt.Printf(separator)
+		fmt.Printf("%8s", "Bid")
+		fmt.Printf(separator)
+		fmt.Printf("%8s", "Ask")
+		fmt.Printf(separator)
+		fmt.Printf("%5s", "B/S ratio")
+		fmt.Printf(separator)
+		fmt.Printf("%5s", "Safety Spread")
+		fmt.Printf(separator)
+		fmt.Printf("%s", "URL")
+		fmt.Printf("\n")
 	}
 
 	// Print two strikes (if they exist)
@@ -148,7 +146,6 @@ func (security *Security) PrintPuts(csv, header bool) {
 	for _, strike := range strikes {
 		put, err := security.getPutForStrike(strike)
 		if err != nil {
-			// fmt.Println(err)
 			continue
 		}
 
@@ -167,6 +164,8 @@ func (security *Security) PrintPuts(csv, header bool) {
 			}
 		}
 
+		safetySpread := (security.Price - (security.Puts[put].Strike - security.Puts[put].Bid)) / security.Price * 100
+
 		url := "https://snapshot.fidelity.com/fidresearch/snapshot/landing.jhtml#/research?symbol=" + security.Ticker
 
 		fmt.Printf("%8s", security.Ticker)
@@ -184,6 +183,8 @@ func (security *Security) PrintPuts(csv, header bool) {
 		fmt.Printf("%8.2f", security.Puts[put].Ask)
 		fmt.Printf(separator)
 		fmt.Printf("%8.1f%%", bsRatio)
+		fmt.Printf(separator)
+		fmt.Printf("%12.1f%%", safetySpread)
 		fmt.Printf(separator)
 		fmt.Printf(url)
 		fmt.Printf("\n")
