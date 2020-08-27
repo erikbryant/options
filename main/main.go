@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/erikbryant/options"
+	sec "github.com/erikbryant/options/security"
 	"strings"
 )
 
@@ -36,6 +37,11 @@ func usage() {
 func main() {
 	flag.Parse()
 
+	if *tickers == "" && !*all {
+		usage()
+		return
+	}
+
 	if *regenerate {
 		_, err := options.FindSecuritiesWithOptions(*useFile, *optionsFile)
 		if err != nil {
@@ -53,25 +59,32 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-	} else if *tickers != "" {
-		t = strings.Split(*tickers, ",")
-	} else {
-		usage()
-		return
 	}
 
+	if *tickers != "" {
+		for _, s := range strings.Split(*tickers, ",") {
+			t = append(t, s)
+		}
+	}
+
+	securities := make(map[string]sec.Security)
+
 	for _, ticker := range t {
-		security, err := options.Security(ticker, *expiration)
+		s, err := options.Security(ticker, *expiration)
 		if err != nil {
 			fmt.Println("Error getting security data", err)
 			continue
 		}
 
-		if security.Price > *maxStrike {
+		securities[ticker] = s
+	}
+
+	for _, s := range securities {
+		if s.Price > *maxStrike {
 			continue
 		}
 
-		security.PrintPuts(*csv, *header)
+		s.PrintPuts(*csv, *header)
 		*header = false
 	}
 }
