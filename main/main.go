@@ -67,7 +67,7 @@ func main() {
 		}
 	}
 
-	securities := make(map[string]sec.Security)
+	var securities []sec.Security
 
 	for _, ticker := range t {
 		s, err := options.Security(ticker, *expiration)
@@ -76,7 +76,7 @@ func main() {
 			continue
 		}
 
-		securities[ticker] = s
+		securities = append(securities, s)
 	}
 
 	for _, s := range securities {
