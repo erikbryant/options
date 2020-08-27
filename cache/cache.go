@@ -48,10 +48,8 @@ func Update(id string, contents map[string]interface{}) {
 
 	s, err := json.MarshalIndent(contents, "", " ")
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
-	err = ioutil.WriteFile(object, s, 0644)
-	fmt.Println(err)
+	ioutil.WriteFile(object, s, 0644)
 }
