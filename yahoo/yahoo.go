@@ -3,6 +3,7 @@ package yahoo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/erikbryant/options/cache"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
 	"io/ioutil"
@@ -340,6 +341,14 @@ func Symbol(security sec.Security, expiration string) (sec.Security, error) {
 		url = fmt.Sprintf("%s&date=%d", url, t.Unix())
 	}
 
+	ocs, err := cache.Read(url)
+	if err == nil {
+		security, err = parseOCS(ocs, security)
+		if err == nil {
+			return security, nil
+		}
+	}
+
 	response, err := web.Request2(url, map[string]string{})
 	if err != nil {
 		return security, err
@@ -360,10 +369,10 @@ func Symbol(security sec.Security, expiration string) (sec.Security, error) {
 
 	// If there are no options for this security, we are done.
 	if !hasOptions(f) {
-		return security, nil
+		return security, fmt.Errorf("No options found for %s", security.Ticker)
 	}
 
-	ocs, err := extractOCS(f)
+	ocs, err = extractOCS(f)
 	if err != nil {
 		return security, err
 	}
@@ -372,6 +381,8 @@ func Symbol(security sec.Security, expiration string) (sec.Security, error) {
 	if err != nil {
 		return security, fmt.Errorf("Error parsing OCS %s", err)
 	}
+
+	cache.Update(url, ocs)
 
 	return security, nil
 }
