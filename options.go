@@ -10,29 +10,41 @@ import (
 	"strings"
 )
 
+// Securities accumulates stock/option data for the given tickers and returns it in a list of Security.
+func Securities(tickers []string) ([]sec.Security, error) {
+	var securities []sec.Security
+
+	for _, ticker := range tickers {
+		security, err := Security(ticker)
+		if err != nil {
+			fmt.Println("Error getting security data", err)
+			continue
+		}
+
+		if !security.HasOptions() {
+			continue
+		}
+
+		securities = append(securities, security)
+	}
+
+	fmt.Printf("%d of %d tickers loaded\n\n", len(securities), len(tickers))
+
+	return securities, nil
+}
+
 // Security accumulates stock/option data for the given ticker and returns it in a Security.
-func Security(ticker, expiration string) (sec.Security, error) {
+func Security(ticker string) (sec.Security, error) {
 	var security sec.Security
 
 	security.Ticker = ticker
 
-	security, err := yahoo.Symbol(security, expiration)
+	security, err := yahoo.Symbol(security)
 	if err != nil {
 		return security, fmt.Errorf("Error getting security %s %s", security.Ticker, err)
 	}
 
 	return security, nil
-}
-
-// SecuritiesWithOptions loads the cached list of all securities known to have options.
-func SecuritiesWithOptions(optionsFile string) ([]string, error) {
-	secs, err := sec.GetFile(optionsFile)
-	if err != nil {
-		return nil, err
-	}
-
-	// Strip the column header row.
-	return secs[1:], nil
 }
 
 // FindSecuritiesWithOptions re-scans all known securities to see which have options.
@@ -60,13 +72,13 @@ func FindSecuritiesWithOptions(useFile, optionsFile string) ([]string, error) {
 		return nil, err
 	}
 
-	hasOptions, err := SecuritiesWithOptions(optionsFile)
+	knownOptions, err := sec.GetFile(optionsFile)
 	if err != nil {
 		return nil, err
 	}
 
 	optionable := make(map[string]string)
-	for _, o := range hasOptions {
+	for _, o := range knownOptions {
 		optionable[o] = o
 	}
 
@@ -77,12 +89,12 @@ func FindSecuritiesWithOptions(useFile, optionsFile string) ([]string, error) {
 			continue
 		}
 
-		hasOptions, err := yahoo.SymbolHasOptions(key)
+		security, err := Security(key)
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-		if !hasOptions {
+		if !security.HasOptions() {
 			continue
 		}
 

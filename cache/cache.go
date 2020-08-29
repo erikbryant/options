@@ -48,6 +48,7 @@ func Update(id string, contents map[string]interface{}) {
 
 	s, err := json.MarshalIndent(contents, "", " ")
 	if err != nil {
+		fmt.Printf("Could not marshal contents for %v\n", contents)
 		return
 	}
 

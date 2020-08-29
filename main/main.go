@@ -37,11 +37,6 @@ func usage() {
 func main() {
 	flag.Parse()
 
-	if *tickers == "" && !*all {
-		usage()
-		return
-	}
-
 	if *regenerate {
 		_, err := options.FindSecuritiesWithOptions(*useFile, *optionsFile)
 		if err != nil {
@@ -50,11 +45,17 @@ func main() {
 		return
 	}
 
+	if *tickers == "" && !*all {
+		fmt.Println("You must specify at least one of '-all' or '-tickers'")
+		usage()
+		return
+	}
+
 	var t []string
 	var err error
 
 	if *all {
-		t, err = options.SecuritiesWithOptions(*optionsFile)
+		t, err = sec.GetFile(*optionsFile)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -67,16 +68,10 @@ func main() {
 		}
 	}
 
-	var securities []sec.Security
-
-	for _, ticker := range t {
-		s, err := options.Security(ticker, *expiration)
-		if err != nil {
-			fmt.Println("Error getting security data", err)
-			continue
-		}
-
-		securities = append(securities, s)
+	securities, err := options.Securities(t)
+	if err != nil {
+		fmt.Println("Error getting security data", err)
+		return
 	}
 
 	for _, s := range securities {
@@ -84,7 +79,7 @@ func main() {
 			continue
 		}
 
-		s.PrintPuts(*csv, *header)
+		s.PrintPuts(*csv, *header, *expiration)
 		*header = false
 	}
 }

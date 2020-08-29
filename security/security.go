@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 )
 
 // Contract holds option data for a single expiration date.
 type Contract struct {
-	Strike     float64
-	Last       float64
-	Bid        float64
-	Ask        float64
-	Expiration string
+	Strike         float64
+	Last           float64
+	Bid            float64
+	Ask            float64
+	Expiration     string
+	LastTradeDate  time.Time
+	HasMiniOptions bool
 }
 
 // DayRange represents a single (historical) trading day.
@@ -27,29 +30,36 @@ type DayRange struct {
 
 // Security holds data about a security and its options.
 type Security struct {
-	Ticker  string
-	Close   DayRange
-	Price   float64
-	Strikes []float64
-	Puts    []Contract
-	Calls   []Contract
+	Ticker         string
+	Close          DayRange
+	Price          float64
+	Strikes        []float64
+	Puts           []Contract
+	Calls          []Contract
+	HasMiniOptions bool
 }
 
-// GetFile reads in the contents of a file.
+// HasOptions returns whether the security has options.
+func (security *Security) HasOptions() bool {
+	return len(security.Puts) != 0 && len(security.Calls) != 0 && len(security.Strikes) != 0
+}
+
+// GetFile returns the contents of a file, minus the header and any blank lines.
 func GetFile(file string) ([]string, error) {
 	contents, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to read file %s", file)
 	}
 
-	securities := strings.Split(string(contents), "\n")
+	lines := strings.Split(string(contents), "\n")
 
 	// Strip trailing blank lines
-	for securities[len(securities)-1] == "" {
-		securities = securities[:len(securities)-1]
+	for lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
 	}
 
-	return securities, nil
+	// Skip the header line
+	return lines[1:], nil
 }
 
 // otmPutStrike finds the nearest put strike that is {outof|at}-the-money.
@@ -95,7 +105,7 @@ func (security *Security) getPutForStrike(strike float64) (int, error) {
 }
 
 // PrintPuts prints the {out|at,in}-the-money option data for a single ticker in CSV or tabulated and with or without a header.
-func (security *Security) PrintPuts(csv, header bool) {
+func (security *Security) PrintPuts(csv, header bool, expiration string) {
 	var separator string
 
 	if csv {
@@ -119,11 +129,13 @@ func (security *Security) PrintPuts(csv, header bool) {
 		fmt.Printf(separator)
 		fmt.Printf("%8s", "Ask")
 		fmt.Printf(separator)
-		fmt.Printf("%5s", "B/S ratio")
+		fmt.Printf("%8s", "B/S ratio")
 		fmt.Printf(separator)
-		fmt.Printf("%5s", "Safety Spread")
+		fmt.Printf("%8s", "Safety")
 		fmt.Printf(separator)
-		fmt.Printf("%s", "URL")
+		fmt.Printf("%8s", "Age")
+		// fmt.Printf(separator)
+		// fmt.Printf("%s", "URL")
 		fmt.Printf("\n")
 	}
 
@@ -149,6 +161,10 @@ func (security *Security) PrintPuts(csv, header bool) {
 			continue
 		}
 
+		if expiration != "" && expiration != security.Puts[put].Expiration {
+			continue
+		}
+
 		bsRatio := security.Puts[put].Bid / security.Puts[put].Strike * 100
 
 		if bsRatio < 4.0 {
@@ -166,7 +182,18 @@ func (security *Security) PrintPuts(csv, header bool) {
 
 		safetySpread := (security.Price - (security.Puts[put].Strike - security.Puts[put].Bid)) / security.Price * 100
 
-		url := "https://snapshot.fidelity.com/fidresearch/snapshot/landing.jhtml#/research?symbol=" + security.Ticker
+		if safetySpread < 4.0 {
+			continue
+		}
+
+		age := int64(time.Now().Sub(security.Puts[put].LastTradeDate).Hours() / 24)
+		if age > 7 {
+			continue
+		}
+		var lastTrade string
+		if age >= 1 {
+			lastTrade = fmt.Sprintf("%dd", age)
+		}
 
 		fmt.Printf("%8s", security.Ticker)
 		fmt.Printf(separator)
@@ -184,9 +211,11 @@ func (security *Security) PrintPuts(csv, header bool) {
 		fmt.Printf(separator)
 		fmt.Printf("%8.1f%%", bsRatio)
 		fmt.Printf(separator)
-		fmt.Printf("%12.1f%%", safetySpread)
+		fmt.Printf("%7.1f%%", safetySpread)
 		fmt.Printf(separator)
-		fmt.Printf(url)
+		fmt.Printf("%8s", lastTrade)
+		// fmt.Printf(separator)
+		// fmt.Printf(url)
 		fmt.Printf("\n")
 	}
 }

@@ -12,22 +12,13 @@ func USEquities(useFile string) (map[string]sec.Security, error) {
 		return nil, err
 	}
 
-	header := true
 	securities := make(map[string]sec.Security)
+
 	for _, equity := range equities[1:] {
-		if header {
-			header = false
-			continue
-		}
-
-		if equity == "" {
-			continue
-		}
-
-		close := strings.Split(equity, ",")
+		cells := strings.Split(equity, ",")
 		var security sec.Security
-		security.Ticker = close[0]
-		securities[close[0]] = security
+		security.Ticker = cells[0]
+		securities[cells[0]] = security
 	}
 
 	return securities, nil

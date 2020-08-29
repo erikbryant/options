@@ -2,119 +2,143 @@ package yahoo
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/erikbryant/options/cache"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
 	"io/ioutil"
-	"regexp"
 	"strings"
 	"time"
 )
 
-// getRawFloat safely extracts val[key]["raw"] as a float64.
-func getRawFloat(i interface{}, key string) (float64, error) {
+// ErrKeyNotFound is an error to use when looking for a key in a map.
+var ErrKeyNotFound = errors.New("key was not found")
+
+// getFloat safely extracts a float64 from an interface{}.
+func getFloat(i interface{}, key string) (float64, error) {
 	val, err := get(i, key)
 	if err != nil {
 		return -1, err
 	}
 	if val == nil {
-		return 0, nil
+		return 0, fmt.Errorf("key was found, but val is nil: %s", key)
 	}
 
-	raw, err := get(val, "raw")
-	if err != nil {
-		return -1, err
-	}
-	if raw == nil {
-		return -1, fmt.Errorf("%s[\"raw\"] was nil", key)
+	f, ok := val.(float64)
+	if !ok {
+		return 0, fmt.Errorf("val was found, but is not a float: i[%s] %v", key, val)
 	}
 
-	return raw.(float64), nil
-}
-
-// getFmtString safely extracts val[key]["fmt"] as a string.
-func getFmtString(i interface{}, key string) (string, error) {
-	val, err := get(i, key)
-	if err != nil {
-		return "", err
-	}
-	if val == nil {
-		return "", fmt.Errorf("%s was nil", key)
-	}
-
-	f, err := get(val, "fmt")
-	if err != nil {
-		return "", err
-	}
-	if f == nil {
-		return "", fmt.Errorf("%s[\"fmt\"] was nil", key)
-	}
-
-	return f.(string), nil
+	return f, nil
 }
 
 // get reads a key from a map[string]interface{} and returns the value.
 func get(i interface{}, key string) (interface{}, error) {
 	if i == nil {
-		return nil, fmt.Errorf("i is nil trying to get %s", key)
+		return nil, fmt.Errorf("i is nil trying to get: %s", key)
 	}
 
-	// TODO: verify i is map[string]interface{} before casting it.
-	return i.(map[string]interface{})[key], nil
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("i is not map[string]interface{}: %s", key)
+	}
+
+	val, ok := m[key]
+	if !ok {
+		return nil, ErrKeyNotFound
+	}
+
+	if val == nil {
+		return val, nil
+	}
+
+	_, ok = val.(interface{})
+	if !ok {
+		return nil, fmt.Errorf("val was found, but is not interface{}: m[%s] %v", key, val)
+	}
+
+	return val, nil
 }
 
 // parseContracts extracts the put or call (specified by 'position') options from the OCS.
 func parseContracts(ocs map[string]interface{}, position string) ([]sec.Contract, error) {
 	// Puts and calls.
-	options, err := get(ocs, "contracts")
+	options, err := get(ocs, "options")
 	if err != nil {
 		return nil, err
 	}
 	if options == nil {
-		return nil, fmt.Errorf("Contracts was nil")
-	}
-
-	optionsObject, err := get(options, position)
-	if err != nil {
-		return nil, err
-	}
-	if optionsObject == nil {
-		return nil, fmt.Errorf("Nil value for contracts %s", position)
+		return nil, fmt.Errorf("Options was nil")
 	}
 
 	var contracts []sec.Contract
 
-	for _, option := range optionsObject.([]interface{}) {
-		var contract sec.Contract
-		var err error
+	for i, option := range options.([]interface{}) {
+		optionsObject, err := get(option, position)
+		if err != nil {
+			return nil, err
+		}
+		if optionsObject == nil {
+			return nil, fmt.Errorf("Nil value for options[%d][%s]", i, position)
+		}
 
-		contract.Strike, err = getRawFloat(option, "strike")
+		hasMiniOptions, err := get(ocs, "hasMiniOptions")
 		if err != nil {
 			return nil, err
 		}
 
-		contract.Last, err = getRawFloat(option, "lastPrice")
-		if err != nil {
-			return nil, err
-		}
+		for _, option := range optionsObject.([]interface{}) {
+			var contract sec.Contract
+			var err error
 
-		contract.Bid, err = getRawFloat(option, "bid")
-		if err != nil {
-			return nil, err
-		}
+			hasMO, ok := hasMiniOptions.(bool)
+			if ok {
+				contract.HasMiniOptions = hasMO
+			}
 
-		contract.Ask, err = getRawFloat(option, "ask")
-		if err != nil {
-			return nil, err
-		}
+			contract.Strike, err = getFloat(option, "strike")
+			if err != nil {
+				return nil, err
+			}
 
-		contract.Expiration, err = getFmtString(option, "expiration")
-		if err != nil {
-			return nil, err
-		}
+			contract.Last, err = getFloat(option, "lastPrice")
+			if err != nil {
+				return nil, err
+			}
 
-		contracts = append(contracts, contract)
+			contract.Bid, err = getFloat(option, "bid")
+			if err != nil {
+				// Sometimes this is not present. Without it, the contract is useless.
+				if err == ErrKeyNotFound {
+					continue
+				}
+				return nil, err
+			}
+
+			contract.Ask, err = getFloat(option, "ask")
+			if err != nil {
+				// Every now and then ask is not present. That's not fatal.
+				if err != ErrKeyNotFound {
+					return nil, err
+				}
+			}
+
+			expiration, err := getFloat(option, "expiration")
+			if err != nil {
+				return nil, err
+			}
+			t := time.Unix(int64(expiration), 0)
+			contract.Expiration = t.UTC().Format("20060102")
+
+			lastTradeDate, err := getFloat(option, "lastTradeDate")
+			if err != nil {
+				return nil, err
+			}
+			contract.LastTradeDate = time.Unix(int64(lastTradeDate), 0)
+
+			contracts = append(contracts, contract)
+		}
 	}
 
 	return contracts, nil
@@ -122,15 +146,7 @@ func parseContracts(ocs map[string]interface{}, position string) ([]sec.Contract
 
 // parsePrice extracts the security price from the OCS.
 func parsePrice(ocs map[string]interface{}) (float64, error) {
-	meta, err := get(ocs, "meta")
-	if err != nil {
-		return 0, err
-	}
-	if meta == nil {
-		return 0, fmt.Errorf("Meta was nil")
-	}
-
-	quote, err := get(meta, "quote")
+	quote, err := get(ocs, "quote")
 	if err != nil {
 		return 0, err
 	}
@@ -138,21 +154,25 @@ func parsePrice(ocs map[string]interface{}) (float64, error) {
 		return 0, fmt.Errorf("Quote was nil")
 	}
 
-	tmp, err := get(quote, "regularMarketPrice")
+	regularMarketPrice, err := get(quote, "regularMarketPrice")
 	if err != nil {
 		return 0, err
 	}
-	return tmp.(float64), nil
+	if regularMarketPrice == nil {
+		return 0, fmt.Errorf("regularMarketPrice was nil")
+	}
+
+	price, ok := regularMarketPrice.(float64)
+	if !ok {
+		return 0, fmt.Errorf("regularMarketPrice was not a float64 %v", regularMarketPrice)
+	}
+
+	return price, nil
 }
 
 // parseStrikes extracts the strike prices from the OCS.
 func parseStrikes(ocs map[string]interface{}) ([]float64, error) {
-	meta, err := get(ocs, "meta")
-	if err != nil {
-		return nil, err
-	}
-
-	strikes, err := get(meta, "strikes")
+	strikes, err := get(ocs, "strikes")
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +192,37 @@ func parseStrikes(ocs map[string]interface{}) ([]float64, error) {
 }
 
 // parseOCS extracts all of the interesting information from the raw Yahoo! format.
-func parseOCS(ocs map[string]interface{}, security sec.Security) (sec.Security, error) {
-	var err error
+func parseOCS(m map[string]interface{}, security sec.Security) (sec.Security, error) {
+	optionChain, err := get(m, "optionChain")
+	if err != nil {
+		return security, err
+	}
+
+	// If the option chain has an error, stop processing.
+	_, err = get(optionChain, "error")
+	if err != nil {
+		return security, err
+	}
+
+	result, err := get(optionChain, "result")
+	if err != nil {
+		return security, err
+	}
+
+	if len(result.([]interface{})) != 1 {
+		return security, fmt.Errorf("len(result) != 1 %v", m)
+	}
+
+	ocs := result.([]interface{})[0].(map[string]interface{})
+
+	hasMiniOptions, err := get(ocs, "hasMiniOptions")
+	if err != nil {
+		return security, err
+	}
+	hasMO, ok := hasMiniOptions.(bool)
+	if ok {
+		security.HasMiniOptions = hasMO
+	}
 
 	security.Puts, err = parseContracts(ocs, "puts")
 	if err != nil {
@@ -198,149 +247,11 @@ func parseOCS(ocs map[string]interface{}, security sec.Security) (sec.Security, 
 	return security, nil
 }
 
-const headerToken = "root.App.main = "
-const footerToken = `;\n}\(this\)\);`
-
-// extractJSON extracts the JSON block from the received HTML.
-func extractJSON(response string) (map[string]interface{}, error) {
-	// Isolate the JSON from the surrounding HTML.
-	var re = regexp.MustCompile(headerToken)
-	removeHeader := re.Split(response, 2)
-	if len(removeHeader) != 2 {
-		return nil, fmt.Errorf("Failed to find header token %s", response)
-	}
-
-	re = regexp.MustCompile(footerToken)
-	removeFooter := re.Split(removeHeader[1], 2)
-	if len(removeFooter) != 2 {
-		return nil, fmt.Errorf("Failed to find footer token %s", response)
-	}
-	jsonString := removeFooter[0]
-
-	if jsonString[0] != '{' {
-		return nil, fmt.Errorf("JSON string is missing the '{' %s", response)
-	}
-
-	if jsonString[len(jsonString)-1] != '}' {
-		return nil, fmt.Errorf("JSON string is missing the '}' %s", response)
-	}
-
-	// Convert the string form to JSON object form.
-	var m interface{}
-	dec := json.NewDecoder(strings.NewReader(string(jsonString)))
-	err := dec.Decode(&m)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the parsing was successful we should get back a
-	// map in JSON form. Make sure we got a map.
-	jsonObject, ok := m.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", string(jsonString[0]))
-	}
-
-	return jsonObject, nil
-}
-
-// extractOCS finds the OptionContractsStore and returns it.
-func extractOCS(jsonObject map[string]interface{}) (map[string]interface{}, error) {
-	if jsonObject == nil {
-		return nil, fmt.Errorf("jsonObject is nil")
-	}
-
-	context := jsonObject["context"]
-	if context == nil {
-		return nil, fmt.Errorf("context is nil")
-	}
-
-	dispatcher := context.(map[string]interface{})["dispatcher"]
-	if dispatcher == nil {
-		return nil, fmt.Errorf("dispatcher is nil")
-	}
-	stores := dispatcher.(map[string]interface{})["stores"]
-	if stores == nil {
-		return nil, fmt.Errorf("stores is nil")
-	}
-
-	optionContractsStore := stores.(map[string]interface{})["OptionContractsStore"]
-	if optionContractsStore == nil {
-		return nil, fmt.Errorf("OptionContractsStore is nil")
-	}
-
-	return optionContractsStore.(map[string]interface{}), nil
-}
-
-// hasOptions checks if there are options for this security.
-func hasOptions(jsonObject map[string]interface{}) bool {
-	if jsonObject == nil {
-		return false
-	}
-
-	context := jsonObject["context"]
-	if context == nil {
-		return false
-	}
-
-	dispatcher := context.(map[string]interface{})["dispatcher"]
-	if dispatcher == nil {
-		return false
-	}
-	stores := dispatcher.(map[string]interface{})["stores"]
-	if stores == nil {
-		return false
-	}
-
-	ocs := stores.(map[string]interface{})["OptionContractsStore"]
-	if ocs == nil {
-		return false
-	}
-
-	contracts, err := get(ocs, "contracts")
-	if err != nil {
-		return false
-	}
-	if contracts == nil {
-		return false
-	}
-
-	puts, err := get(contracts, "puts")
-	if err != nil {
-		return false
-	}
-	if puts == nil {
-		return false
-	}
-	if len(puts.([]interface{})) == 0 {
-		return false
-	}
-
-	calls, err := get(contracts, "calls")
-	if err != nil {
-		return false
-	}
-	if calls == nil {
-		return false
-	}
-	if len(calls.([]interface{})) == 0 {
-		return false
-	}
-
-	return true
-}
-
 // Symbol looks up a single ticker symbol on Yahoo! Finance and returns the associated JSON data block.
-func Symbol(security sec.Security, expiration string) (sec.Security, error) {
-	url := "https://finance.yahoo.com/quote/" + security.Ticker + "/options?p=" + security.Ticker
+func Symbol(security sec.Security) (sec.Security, error) {
+	url := "https://query1.finance.yahoo.com/v7/finance/options/" + security.Ticker
 
-	if expiration != "" {
-		t, err := time.Parse("20060102", expiration)
-		if err != nil {
-			return security, err
-		}
-		url = fmt.Sprintf("%s&date=%d", url, t.Unix())
-	}
-
+	// If the data is in the cache we can exit early.
 	ocs, err := cache.Read(url)
 	if err == nil {
 		security, err = parseOCS(ocs, security)
@@ -362,19 +273,19 @@ func Symbol(security sec.Security, expiration string) (sec.Security, error) {
 		return security, err
 	}
 
-	f, err := extractJSON(string(s))
+	dec := json.NewDecoder(strings.NewReader(string(s)))
+	var i interface{}
+	err = dec.Decode(&i)
 	if err != nil {
 		return security, err
 	}
 
-	// If there are no options for this security, we are done.
-	if !hasOptions(f) {
-		return security, fmt.Errorf("No options found for %s", security.Ticker)
-	}
-
-	ocs, err = extractOCS(f)
-	if err != nil {
-		return security, err
+	// If the web request was successful we should get back a
+	// map in JSON form. If it failed we should get back an error
+	// message in string form. Make sure we got a map.
+	ocs, ok := i.(map[string]interface{})
+	if !ok {
+		return security, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", string(s))
 	}
 
 	security, err = parseOCS(ocs, security)
@@ -382,32 +293,11 @@ func Symbol(security sec.Security, expiration string) (sec.Security, error) {
 		return security, fmt.Errorf("Error parsing OCS %s", err)
 	}
 
-	cache.Update(url, ocs)
+	// Only update the cache if the options fields were populated.
+	// Sometimes Yahoo returns empty sets when queried.
+	if security.HasOptions() {
+		cache.Update(url, ocs)
+	}
 
 	return security, nil
-}
-
-// SymbolHasOptions checks to see if options are available for that symbol.
-func SymbolHasOptions(ticker string) (bool, error) {
-	url := "https://finance.yahoo.com/quote/" + ticker + "/options?p=" + ticker
-
-	response, err := web.Request2(url, map[string]string{})
-	if err != nil {
-		return false, err
-	}
-	if response.StatusCode != 200 {
-		return false, fmt.Errorf("Unexpected response code %d getting options '%s'", response.StatusCode, ticker)
-	}
-
-	s, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return false, err
-	}
-
-	f, err := extractJSON(string(s))
-	if err != nil {
-		return false, err
-	}
-
-	return hasOptions(f), nil
 }
