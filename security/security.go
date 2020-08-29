@@ -16,6 +16,8 @@ type Contract struct {
 	Expiration     string
 	LastTradeDate  time.Time
 	HasMiniOptions bool
+	ContractSize   int64
+	OpenInterest   int64
 }
 
 // DayRange represents a single (historical) trading day.
@@ -134,8 +136,6 @@ func (security *Security) PrintPuts(csv, header bool, expiration string) {
 		fmt.Printf("%8s", "Safety")
 		fmt.Printf(separator)
 		fmt.Printf("%8s", "Age")
-		// fmt.Printf(separator)
-		// fmt.Printf("%s", "URL")
 		fmt.Printf("\n")
 	}
 
@@ -214,8 +214,6 @@ func (security *Security) PrintPuts(csv, header bool, expiration string) {
 		fmt.Printf("%7.1f%%", safetySpread)
 		fmt.Printf(separator)
 		fmt.Printf("%8s", lastTrade)
-		// fmt.Printf(separator)
-		// fmt.Printf(url)
 		fmt.Printf("\n")
 	}
 }
