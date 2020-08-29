@@ -2,4 +2,4 @@ module github.com/erikbryant/options
 
 go 1.14
 
-require github.com/erikbryant/web v0.5.0
+require github.com/erikbryant/web v0.6.0
