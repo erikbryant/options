@@ -80,7 +80,11 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 		fmt.Printf(separator)
 		fmt.Printf("%8s", "Age")
 		fmt.Printf(separator)
-		fmt.Printf("%8s", "Note")
+		fmt.Printf("%8s", "Earnings")
+		fmt.Printf(separator)
+		fmt.Printf("%8s", "Price+")
+		fmt.Printf(separator)
+		fmt.Printf("%8s", "Odd Lot")
 		fmt.Printf("\n")
 	}
 
@@ -91,18 +95,17 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 		lastTrade = fmt.Sprintf("%dd", security.Puts[put].LastTradeDays)
 	}
 
-	note := ""
-	// Earnings
+	earnings := ""
 	if security.EarningsDate != "" && security.EarningsDate <= expiration {
-		note += "E"
+		earnings = "E"
 	}
-	// Overbidding
+	overPrice := ""
 	if security.Puts[put].Strike >= security.Price {
-		note += " O"
+		overPrice = "O"
 	}
-	// Mini options
+	lotSize := ""
 	if security.Puts[put].Size != 100 {
-		note += fmt.Sprintf(" %d", security.Puts[put].Size)
+		lotSize = fmt.Sprintf("%d", security.Puts[put].Size)
 	}
 
 	fmt.Printf("%8s", security.Ticker)
@@ -125,6 +128,10 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 	fmt.Printf(separator)
 	fmt.Printf("%8s", lastTrade)
 	fmt.Printf(separator)
-	fmt.Printf("%8s", note)
+	fmt.Printf("%8s", earnings)
+	fmt.Printf(separator)
+	fmt.Printf("%8s", overPrice)
+	fmt.Printf(separator)
+	fmt.Printf("%8s", lotSize)
 	fmt.Printf("\n")
 }
