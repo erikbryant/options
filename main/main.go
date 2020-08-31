@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/erikbryant/options"
 	csvFmt "github.com/erikbryant/options/csv"
+	"sort"
 	"strings"
 	"time"
 )
@@ -34,6 +35,33 @@ func usage() {
 	fmt.Println("    options -all -optionsFile options.csv  -expiration 20200821[-csv] [-header] [-maxStrike 32.20] [-minYield 4.5]")
 	fmt.Println("  Find interesting option plays, limited to these tickers")
 	fmt.Println("    options -tickers=<ticker1,ticker2,...>  -expiration 20200821[-csv] [-header] [-maxStrike 32.20] [-minYield 4.5]")
+}
+
+// combine merges two lists into one, removes any elements that are in skip, and returns the sorted remainder.
+func combine(list1, list2 []string, skip []string) []string {
+	m := make(map[string]int)
+
+	for _, val := range list1 {
+		m[val] = 1
+	}
+
+	for _, val := range list2 {
+		m[val] = 1
+	}
+
+	for _, val := range skip {
+		delete(m, val)
+	}
+
+	var result []string
+
+	for key := range m {
+		result = append(result, key)
+	}
+
+	sort.Strings(result)
+
+	return result
 }
 
 func main() {
@@ -69,20 +97,7 @@ func main() {
 		}
 	}
 
-	if *tickers != "" {
-		for _, s := range strings.Split(*tickers, ",") {
-			t = append(t, s)
-		}
-	}
-
-	// Remove any that are in the skiplist.
-	for _, skip := range strings.Split(*skiplist, ",") {
-		for i := len(t) - 1; i >= 0; i-- {
-			if t[i] == skip {
-				t = append(t[:i], t[i+1:]...)
-			}
-		}
-	}
+	t = combine(t, strings.Split(*tickers, ","), strings.Split(*skiplist, ","))
 
 	securities, err := options.Securities(t)
 	if err != nil {
