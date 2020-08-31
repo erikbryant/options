@@ -13,8 +13,6 @@ Get option data for a single strike on a single expiration date (F @ 6.5): https
 * Write tests
 
 * Add columns for exposure?
-* Warn on upcoming earnings or dividends
-* Add overbid flag column
 * Add extra fields Chris wants
 
 * Send errors to stderr
