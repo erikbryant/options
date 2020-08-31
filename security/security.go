@@ -102,7 +102,7 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 	}
 	// Mini options
 	if security.Puts[put].Size != 100 {
-		note += " M"
+		note += fmt.Sprintf(" %d", security.Puts[put].Size)
 	}
 
 	fmt.Printf("%8s", security.Ticker)
