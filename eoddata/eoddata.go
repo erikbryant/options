@@ -1,25 +1,37 @@
 package eoddata
 
 import (
-	sec "github.com/erikbryant/options/security"
+	"github.com/erikbryant/options/csv"
+	"sort"
 	"strings"
 )
 
-// USEquities loads all known US equity symbols.
-func USEquities(useFile string) (map[string]sec.Security, error) {
-	equities, err := sec.GetFile(useFile)
+// USEquities returns a sorted list of all known US equity symbols.
+func USEquities(useFile string) ([]string, error) {
+	equities, err := csv.GetFile(useFile)
 	if err != nil {
 		return nil, err
 	}
 
-	securities := make(map[string]sec.Security)
+	var securities []string
 
-	for _, equity := range equities[1:] {
+	for _, equity := range equities {
 		cells := strings.Split(equity, ",")
-		var security sec.Security
-		security.Ticker = cells[0]
-		securities[cells[0]] = security
+
+		// Skip non-symbols
+		if strings.ContainsAny(cells[0], "-.") {
+			continue
+		}
+
+		// This returns a 500 and does not appear to have options, anyway.
+		if cells[0] == "MID" {
+			continue
+		}
+
+		securities = append(securities, cells[0])
 	}
+
+	sort.Strings(securities)
 
 	return securities, nil
 }

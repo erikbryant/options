@@ -52,5 +52,8 @@ func Update(id string, contents map[string]interface{}) {
 		return
 	}
 
-	ioutil.WriteFile(object, s, 0644)
+	err = ioutil.WriteFile(object, s, 0644)
+	if err != nil {
+		fmt.Println("Error writing cache file", err)
+	}
 }
