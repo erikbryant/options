@@ -20,6 +20,7 @@ var (
 	maxStrike   = flag.Float64("maxStrike", 999999999, "Only tickers below this strike price")
 	minYield    = flag.Float64("minYield", 0, "Only tickers with at least this bid/strike yield")
 	minSafety   = flag.Float64("minSafety", 0, "Only tickers with at least this safety spread")
+	skiplist    = flag.String("skiplist", "LABD,LABU,SQQQ", "Comma separated list of stocks to skip")
 )
 
 func usage() {
@@ -71,6 +72,15 @@ func main() {
 	if *tickers != "" {
 		for _, s := range strings.Split(*tickers, ",") {
 			t = append(t, s)
+		}
+	}
+
+	// Remove any that are in the skiplist.
+	for _, skip := range strings.Split(*skiplist, ",") {
+		for i := len(t) - 1; i >= 0; i-- {
+			if t[i] == skip {
+				t = append(t[:i], t[i+1:]...)
+			}
 		}
 	}
 
