@@ -12,8 +12,12 @@ Get option data for a single strike on a single expiration date (F @ 6.5): https
 
 * Write tests
 
+* Use Finnhub for current share price (flip between it and TradeKing?)
+* Add flag to invalidate cache for selected tickers
+* If fewer than XX tickers, delete cache and get live data
+
+* Add columns for quantity, exposure, yield
 * Add columns for exposure?
-* Add extra fields Chris wants
 
 * Send errors to stderr
 * Make it interactive?

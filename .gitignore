@@ -1,7 +1,6 @@
 .DS_Store
 
-yahoo-cache
-tradeking-cache
+web-request-cache
 
 # Binaries for programs and plugins
 *.exe

@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const cacheDir = "./yahoo-cache/"
+const cacheDir = "./web-request-cache/"
 
 func sanitize(id string) string {
 	id = strings.ReplaceAll(id, "/", "-")
