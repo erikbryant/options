@@ -92,6 +92,15 @@ func parseMarketOptions(m map[string]interface{}, security sec.Security) (sec.Se
 			return security, err
 		}
 
+		contractSize, ok := val.(map[string]interface{})["contract_size"]
+		if !ok {
+			return security, fmt.Errorf("Unable to parse contract_size")
+		}
+		contract.Size, err = strconv.Atoi(contractSize.(string))
+		if err != nil {
+			return security, err
+		}
+
 		date, ok := val.(map[string]interface{})["date"]
 		if !ok {
 			return security, fmt.Errorf("Unable to parse date")

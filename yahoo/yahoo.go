@@ -83,19 +83,19 @@ func parseContracts(ocs map[string]interface{}, position string) ([]sec.Contract
 			return nil, fmt.Errorf("Nil value for options[%d][%s]", i, position)
 		}
 
-		hasMiniOptions, err := get(ocs, "hasMiniOptions")
-		if err != nil {
-			return nil, err
-		}
+		// hasMiniOptions, err := get(ocs, "hasMiniOptions")
+		// if err != nil {
+		// 	return nil, err
+		// }
 
 		for _, option := range optionsObject.([]interface{}) {
 			var contract sec.Contract
 			var err error
 
-			hasMO, ok := hasMiniOptions.(bool)
-			if ok {
-				contract.HasMiniOptions = hasMO
-			}
+			// hasMO, ok := hasMiniOptions.(bool)
+			// if ok {
+			// 	contract.HasMiniOptions = hasMO
+			// }
 
 			contract.Strike, err = getFloat(option, "strike")
 			if err != nil {
@@ -215,14 +215,14 @@ func parseOCS(m map[string]interface{}, security sec.Security) (sec.Security, er
 
 	ocs := result.([]interface{})[0].(map[string]interface{})
 
-	hasMiniOptions, err := get(ocs, "hasMiniOptions")
-	if err != nil {
-		return security, err
-	}
-	hasMO, ok := hasMiniOptions.(bool)
-	if ok {
-		security.HasMiniOptions = hasMO
-	}
+	// hasMiniOptions, err := get(ocs, "hasMiniOptions")
+	// if err != nil {
+	// 	return security, err
+	// }
+	// hasMO, ok := hasMiniOptions.(bool)
+	// if ok {
+	// 	security.HasMiniOptions = hasMO
+	// }
 
 	security.Puts, err = parseContracts(ocs, "puts")
 	if err != nil {

@@ -8,15 +8,14 @@ import (
 // Contract holds option data for a single expiration date.
 type Contract struct {
 	// Received values
-	Strike         float64
-	Last           float64
-	Bid            float64
-	Ask            float64
-	Expiration     string
-	LastTradeDate  time.Time
-	HasMiniOptions bool
-	ContractSize   int64
-	OpenInterest   int64
+	Strike        float64
+	Last          float64
+	Bid           float64
+	Ask           float64
+	Expiration    string
+	LastTradeDate time.Time
+	Size          int
+	OpenInterest  int64
 	// Derived values
 	PriceBasisDelta float64 // Share price minus cost basis
 	LastTradeDays   int64   // Age of last trade in days
@@ -36,14 +35,13 @@ type DayRange struct {
 
 // Security holds data about a security and its options.
 type Security struct {
-	Ticker         string
-	Close          DayRange
-	Price          float64
-	Strikes        []float64
-	Puts           []Contract
-	Calls          []Contract
-	HasMiniOptions bool
-	EarningsDate   string
+	Ticker       string
+	Close        DayRange
+	Price        float64
+	Strikes      []float64
+	Puts         []Contract
+	Calls        []Contract
+	EarningsDate string
 }
 
 // HasOptions returns whether the security has options.
@@ -94,11 +92,17 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 	}
 
 	note := ""
+	// Earnings
 	if security.EarningsDate != "" && security.EarningsDate <= expiration {
 		note += "E"
 	}
+	// Overbidding
 	if security.Puts[put].Strike >= security.Price {
 		note += " O"
+	}
+	// Mini options
+	if security.Puts[put].Size != 100 {
+		note += " M"
 	}
 
 	fmt.Printf("%8s", security.Ticker)
