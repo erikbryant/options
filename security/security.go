@@ -99,13 +99,13 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 	if security.EarningsDate != "" && security.EarningsDate <= expiration {
 		earnings = "E"
 	}
-	overPrice := ""
+	pricePlus := ""
 	if security.Puts[put].Strike >= security.Price {
-		overPrice = "O"
+		pricePlus = "O"
 	}
-	lotSize := ""
+	oddLot := ""
 	if security.Puts[put].Size != 100 {
-		lotSize = fmt.Sprintf("%d", security.Puts[put].Size)
+		oddLot = fmt.Sprintf("%d", security.Puts[put].Size)
 	}
 
 	fmt.Printf("%8s", security.Ticker)
@@ -130,8 +130,8 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 	fmt.Printf(separator)
 	fmt.Printf("%8s", earnings)
 	fmt.Printf(separator)
-	fmt.Printf("%8s", overPrice)
+	fmt.Printf("%8s", pricePlus)
 	fmt.Printf(separator)
-	fmt.Printf("%8s", lotSize)
+	fmt.Printf("%8s", oddLot)
 	fmt.Printf("\n")
 }
