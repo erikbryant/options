@@ -70,17 +70,17 @@ func combine(list1, list2 []string, skip []string) []string {
 func main() {
 	flag.Parse()
 
-	err := options.Init(time.Now().Format("20060102"), *expiration)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	if *regenerate {
 		_, err := options.FindSecuritiesWithOptions(*useFile, *optionsFile)
 		if err != nil {
 			fmt.Println(err)
 		}
+		return
+	}
+
+	err := options.Init(time.Now().Format("20060102"), *expiration)
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
@@ -100,8 +100,10 @@ func main() {
 		}
 	}
 
+	// Get the list of tickers to scan.
 	t = combine(t, strings.Split(*tickers, ","), strings.Split(*skiplist, ","))
 
+	// Load underlying data for all tickers.
 	securities, err := options.Securities(t)
 	if err != nil {
 		fmt.Println("Error getting security data", err)
