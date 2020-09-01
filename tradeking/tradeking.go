@@ -185,7 +185,7 @@ func parseMarketExt(m map[string]interface{}, security sec.Security) (sec.Securi
 	return security, nil
 }
 
-func webRequest(url string) (map[string]interface{}, error) {
+func webRequest(url string) (map[string]interface{}, bool, error) {
 	var response *http.Response
 	var err error
 
@@ -193,8 +193,8 @@ func webRequest(url string) (map[string]interface{}, error) {
 	ovr := "&oauth_version=1.0"
 	osm := "&oauth_signature_method=HMAC-SHA1"
 	ots := fmt.Sprintf("&oauth_timestamp=%d", time.Now().Unix())
-	ock := "&oauth_consumer_key="
-	otk := "&oauth_token="
+	ock := "&oauth_consumer_key=leG5f26gJYbODi5Lnb70vdNhmYpTXM9RGums6ITWmO86"
+	otk := "&oauth_token=urKdEmzWnzNRRRTzwTSa3QesUrOpGflBeK2Mw33cVqg3"
 
 	auth := ock + osm + ots + otk + ovr
 
@@ -203,13 +203,12 @@ func webRequest(url string) (map[string]interface{}, error) {
 	for {
 		response, err = web.Request2(url, map[string]string{})
 		if err != nil {
-			return nil, fmt.Errorf("Error fetching symbol data %s", err)
+			return nil, false, fmt.Errorf("Error fetching symbol data %s", err)
 		}
 		if response.StatusCode == 429 {
 			after, err := time.ParseDuration(response.Header["X-Ratelimit-Retry-After"][0] + "s")
-			if err != nil {
-				// Not sure why it would fail, but sleep for at least a little while.
-				after, _ = time.ParseDuration("5s")
+			if err != nil || after > 5 {
+				return nil, true, fmt.Errorf("Throttled")
 			}
 			fmt.Printf("Throttled. Backing off for %s...", after)
 			time.Sleep(after)
@@ -219,19 +218,19 @@ func webRequest(url string) (map[string]interface{}, error) {
 		if response.StatusCode == 200 {
 			break
 		}
-		return nil, fmt.Errorf("Got an unexpected StatusCode %v", response)
+		return nil, false, fmt.Errorf("Got an unexpected StatusCode %v", response)
 	}
 
 	resp, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	dec := json.NewDecoder(strings.NewReader(string(resp)))
 	var m interface{}
 	err = dec.Decode(&m)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// If the web request was successful we should get back a
@@ -239,10 +238,10 @@ func webRequest(url string) (map[string]interface{}, error) {
 	// message in string form. Make sure we got a map.
 	f, ok := m.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", string(resp))
+		return nil, false, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", string(resp))
 	}
 
-	return f, nil
+	return f, false, nil
 }
 
 // GetOptions looks up a single ticker symbol and returns its options.
@@ -253,9 +252,16 @@ func GetOptions(security sec.Security) (sec.Security, error) {
 
 	response, err := cache.Read(today + url)
 	if err != nil {
-		response, err = webRequest(url)
-		if err != nil {
-			return security, fmt.Errorf("Error fetching option data %s %s", security.Ticker, err)
+		for {
+			var retryable bool
+			response, retryable, err = webRequest(url)
+			if retryable {
+				continue
+			}
+			if err != nil {
+				return security, fmt.Errorf("Error fetching option data %s %s", security.Ticker, err)
+			}
+			break
 		}
 	}
 
@@ -273,22 +279,23 @@ func GetOptions(security sec.Security) (sec.Security, error) {
 }
 
 // GetStock looks up a single ticker symbol returns the security.
-func GetStock(security sec.Security) (sec.Security, error) {
+func GetStock(security sec.Security) (sec.Security, bool, error) {
 	today := time.Now().Format("20060102")
 
 	url := "https://api.tradeking.com/v1/market/ext/quotes.json?symbols=" + security.Ticker
 
 	response, err := cache.Read(today + url)
 	if err != nil {
-		response, err = webRequest(url)
+		var retryable bool
+		response, retryable, err = webRequest(url)
 		if err != nil {
-			return security, fmt.Errorf("Error fetching stock data %s %s", security.Ticker, err)
+			return security, retryable, fmt.Errorf("Error fetching stock data %s %s", security.Ticker, err)
 		}
 	}
 
 	security, err = parseMarketExt(response, security)
 	if err != nil {
-		return security, fmt.Errorf("Error parsing market ext %s", err)
+		return security, false, fmt.Errorf("Error parsing market ext %s", err)
 	}
 
 	// Only update the cache if the price was populated.
@@ -296,22 +303,5 @@ func GetStock(security sec.Security) (sec.Security, error) {
 		cache.Update(today+url, response)
 	}
 
-	return security, nil
-}
-
-// Symbol looks up a single ticker symbol and returns the security.
-func Symbol(security sec.Security) (sec.Security, error) {
-	var err error
-
-	security, err = GetOptions(security)
-	if err != nil {
-		return security, fmt.Errorf("Error parsing options %s", err)
-	}
-
-	security, err = GetStock(security)
-	if err != nil {
-		return security, fmt.Errorf("Error parsing stock %s", err)
-	}
-
-	return security, nil
+	return security, false, nil
 }

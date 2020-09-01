@@ -46,18 +46,51 @@ func Securities(tickers []string) ([]sec.Security, error) {
 	return securities, nil
 }
 
+// primary indicates which source to favor. If it starts throttling we switch to the other.
+var primary = "finnhub"
+
+// getStock retrieves stock data for the given ticker. It load balances across multiple providers.
+func getStock(security sec.Security) (sec.Security, error) {
+	var retryable bool
+	var err error
+
+	for {
+		if primary == "finnhub" {
+			security, retryable, err = finnhub.GetStock(security)
+			if err == nil || !retryable {
+				break
+			}
+			fmt.Println("Finnhub is throttling, switching to TradeKing")
+			primary = "tradeking"
+		}
+		security, retryable, err = tradeking.GetStock(security)
+		if err == nil || !retryable {
+			break
+		}
+		fmt.Println("TradeKing is throttling, switching to Finnhub")
+		primary = "finnhub"
+	}
+
+	return security, nil
+}
+
 // Security accumulates stock/option data for the given ticker and returns it in a Security.
 func Security(ticker string) (sec.Security, error) {
 	var security sec.Security
 
 	security.Ticker = ticker
+	fmt.Println(security.Ticker)
 
 	// Fetch data
-	// security, err := yahoo.Symbol(security)
-	security, err := tradeking.Symbol(security)
+	security, err := tradeking.GetOptions(security)
 	if err != nil {
-		return security, fmt.Errorf("Error getting security %s %s", security.Ticker, err)
+		return security, fmt.Errorf("Error getting options %s %s", security.Ticker, err)
 	}
+	security, err = getStock(security)
+	if err != nil {
+		return security, fmt.Errorf("Error getting stock %s %s", security.Ticker, err)
+	}
+	security.EarningsDate = earnings[security.Ticker]
 
 	// Synthetic data
 	for put := range security.Puts {
@@ -66,7 +99,6 @@ func Security(ticker string) (sec.Security, error) {
 		security.Puts[put].BidStrikeRatio = security.Puts[put].Bid / security.Puts[put].Strike * 100
 		security.Puts[put].SafetySpread = (security.Price - (security.Puts[put].Strike - security.Puts[put].Bid)) / security.Price * 100
 	}
-	security.EarningsDate = earnings[security.Ticker]
 
 	return security, nil
 }
@@ -90,13 +122,15 @@ func FindSecuritiesWithOptions(useFile, optionsFile string) ([]string, error) {
 		return nil, err
 	}
 
-	knownOptions, err := csv.GetFile(optionsFile)
-	if err != nil {
-		return nil, err
-	}
 	optionable := make(map[string]string)
-	for _, o := range knownOptions {
-		optionable[o] = o
+	if optionsFile != "" {
+		knownOptions, err := csv.GetFile(optionsFile)
+		if err != nil {
+			return nil, err
+		}
+		for _, o := range knownOptions {
+			optionable[o] = o
+		}
 	}
 
 	options := []string{}
