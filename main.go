@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/erikbryant/options"
 	csvFmt "github.com/erikbryant/options/csv"
+	"github.com/erikbryant/options/options"
 	"sort"
 	"strings"
 	"time"
