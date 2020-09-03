@@ -193,8 +193,8 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	ovr := "&oauth_version=1.0"
 	osm := "&oauth_signature_method=HMAC-SHA1"
 	ots := fmt.Sprintf("&oauth_timestamp=%d", time.Now().Unix())
-	ock := "&oauth_consumer_key=leG5f26gJYbODi5Lnb70vdNhmYpTXM9RGums6ITWmO86"
-	otk := "&oauth_token=urKdEmzWnzNRRRTzwTSa3QesUrOpGflBeK2Mw33cVqg3"
+	ock := "&oauth_consumer_key="
+	otk := "&oauth_token="
 
 	auth := ock + osm + ots + otk + ovr
 

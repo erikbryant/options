@@ -18,7 +18,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	var err error
 
 	// API key authentication
-	auth := "&token=bsjkhf7rh5rdj1nugg4g"
+	auth := "&token="
 
 	url += auth
 
