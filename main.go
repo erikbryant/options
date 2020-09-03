@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	csvFmt "github.com/erikbryant/options/csv"
+	"github.com/erikbryant/options/finnhub"
 	"github.com/erikbryant/options/options"
+	"github.com/erikbryant/options/tiingo"
+	"github.com/erikbryant/options/tradeking"
 	"sort"
 	"strings"
 	"time"
@@ -22,6 +25,7 @@ var (
 	minYield    = flag.Float64("minYield", 0, "Only tickers with at least this bid/strike yield")
 	minSafety   = flag.Float64("minSafety", 0, "Only tickers with at least this safety spread")
 	skiplist    = flag.String("skiplist", "LABD,LABU,SQQQ,UVXY", "Comma separated list of stocks to skip")
+	passPhrase  = flag.String("passPhrase", "", "Passphrase to unlock API key(s)")
 )
 
 func usage() {
@@ -69,6 +73,10 @@ func combine(list1, list2 []string, skip []string) []string {
 
 func main() {
 	flag.Parse()
+
+	tiingo.Init(*passPhrase)
+	tradeking.Init(*passPhrase)
+	finnhub.Init(*passPhrase)
 
 	if *regenerate {
 		_, err := options.FindSecuritiesWithOptions(*useFile, *optionsFile)

@@ -3,6 +3,7 @@ package finnhub
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/erikbryant/aes"
 	"github.com/erikbryant/options/cache"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
@@ -13,12 +14,27 @@ import (
 	"time"
 )
 
+var (
+	cipherAuthToken = "GDrwdFOt/zTS12HUuCYE82Xjdzoa5EYOT9e377XNYc0w2St/CNQ0M/jOZorYzU1G"
+	authToken       = ""
+)
+
+// Init initializes the internal state of the package.
+func Init(passPhrase string) {
+	var err error
+
+	authToken, err = aes.Decrypt(cipherAuthToken, passPhrase)
+	if err != nil {
+		panic("Incorrect passphrase for FinnHub")
+	}
+}
+
 func webRequest(url string) (map[string]interface{}, bool, error) {
 	var response *http.Response
 	var err error
 
 	// API key authentication
-	auth := "&token="
+	auth := "&token=" + authToken
 
 	url += auth
 

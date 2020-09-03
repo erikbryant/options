@@ -3,6 +3,7 @@ package tiingo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/erikbryant/aes"
 	"github.com/erikbryant/options/cache"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
@@ -12,11 +13,26 @@ import (
 	"time"
 )
 
+var (
+	cipherAuthToken = "Y5o23xwp5gRm+XsCO2z9eRX0qdgaKPD1IrXOLKd7MmBavPo2RnY9iamVoowvsuh6JLpJ6LFKVLKXNWoGjE1x70Hn03Y="
+	authToken       = ""
+)
+
+// Init initializes the internal state of the package.
+func Init(passPhrase string) {
+	var err error
+
+	authToken, err = aes.Decrypt(cipherAuthToken, passPhrase)
+	if err != nil {
+		panic("Incorrect passphrase for Tiingo")
+	}
+}
+
 func webRequest(url string) (map[string]interface{}, bool, error) {
 	var response *http.Response
 	var err error
 
-	auth := "&token="
+	auth := "&token=" + authToken
 
 	url += auth
 

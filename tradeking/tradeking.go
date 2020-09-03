@@ -3,6 +3,7 @@ package tradeking
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/erikbryant/aes"
 	"github.com/erikbryant/options/cache"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
@@ -13,6 +14,28 @@ import (
 	"strings"
 	"time"
 )
+
+var (
+	cipherOauthToken  = "zCeloKfLfBLbEaHTTLWJLn86/sOUOpKqrphui9mPKcVz32nxOsapurN+SStCBRUm6TZku/kH2VF7OllDn3fb9G7pei6vD9L4"
+	oauthToken        = ""
+	cipherConsumerKey = "uA/gknxobBKarpEjTs8lEtC4+Q0tSCnp5755Dcgjv3PLhASbPmLlEWxRS6Cpu0Qs/2J5MR2yGxAyDAR0bGVRmR4sF71B7j8f"
+	consumerKey       = ""
+)
+
+// Init initializes the internal state of the package.
+func Init(passPhrase string) {
+	var err error
+
+	oauthToken, err = aes.Decrypt(cipherOauthToken, passPhrase)
+	if err != nil {
+		panic("Incorrect passphrase for Trade King oauth token")
+	}
+
+	consumerKey, err = aes.Decrypt(cipherConsumerKey, passPhrase)
+	if err != nil {
+		panic("Incorrect passphrase for Trade King oauth consumer key")
+	}
+}
 
 // parseMarketOptions extracts salient information from the raw Trade King format.
 func parseMarketOptions(m map[string]interface{}, security sec.Security) (sec.Security, error) {
@@ -193,8 +216,8 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	ovr := "&oauth_version=1.0"
 	osm := "&oauth_signature_method=HMAC-SHA1"
 	ots := fmt.Sprintf("&oauth_timestamp=%d", time.Now().Unix())
-	ock := "&oauth_consumer_key="
-	otk := "&oauth_token="
+	ock := "&oauth_consumer_key=" + consumerKey
+	otk := "&oauth_token=" + oauthToken
 
 	auth := ock + osm + ots + otk + ovr
 
