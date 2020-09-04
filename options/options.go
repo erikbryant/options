@@ -28,9 +28,10 @@ func Securities(tickers []string) ([]sec.Security, error) {
 	var securities []sec.Security
 
 	for _, ticker := range tickers {
+		fmt.Printf("\r%s ", ticker)
 		security, err := Security(ticker)
 		if err != nil {
-			fmt.Println("Error getting security data", err)
+			fmt.Printf("Error getting security data %s\n", err)
 			continue
 		}
 
@@ -41,7 +42,7 @@ func Securities(tickers []string) ([]sec.Security, error) {
 		securities = append(securities, security)
 	}
 
-	fmt.Printf("%d of %d tickers loaded\n\n", len(securities), len(tickers))
+	fmt.Printf("\r%d of %d tickers loaded\n\n", len(securities), len(tickers))
 
 	return securities, nil
 }
@@ -79,7 +80,6 @@ func Security(ticker string) (sec.Security, error) {
 	var security sec.Security
 
 	security.Ticker = ticker
-	fmt.Println(security.Ticker)
 
 	// Fetch data
 	security, err := tradeking.GetOptions(security)

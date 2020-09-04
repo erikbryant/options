@@ -27,7 +27,7 @@ var (
 	maxStrike   = flag.Float64("maxStrike", 999999999, "Only tickers below this strike price")
 	minYield    = flag.Float64("minYield", 0, "Only tickers with at least this bid/strike yield")
 	minSafety   = flag.Float64("minSafety", 0, "Only tickers with at least this safety spread")
-	skiplist    = flag.String("skiplist", "LABD,LABU,SQQQ,UVXY", "Comma separated list of stocks to skip")
+	skiplist    = flag.String("skiplist", "LABD,LABU,SQQQ,TQQQ,TZA,UVXY,VIXY,VXX", "Comma separated list of stocks to skip")
 	passPhrase  = flag.String("passPhrase", "", "Passphrase to unlock API key(s)")
 )
 
