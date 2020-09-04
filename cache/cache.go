@@ -24,19 +24,11 @@ func Read(id string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("Unable to read file %s %s", object, err)
 	}
 
-	// Convert the string form to JSON object form.
-	var m interface{}
-	dec := json.NewDecoder(strings.NewReader(string(contents)))
-	err = dec.Decode(&m)
-	if err != nil {
-		return nil, err
-	}
+	var jsonObject map[string]interface{}
 
-	// If the parsing was successful we should get back a
-	// map in JSON form. Make sure we got a map.
-	jsonObject, ok := m.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", contents)
+	err = json.Unmarshal(contents, &jsonObject)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to unmarshal cached json %s", err)
 	}
 
 	return jsonObject, nil

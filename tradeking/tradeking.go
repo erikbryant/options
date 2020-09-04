@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -251,37 +250,32 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		return nil, false, fmt.Errorf("Got an unexpected StatusCode %v", response)
 	}
 
-	resp, err := ioutil.ReadAll(response.Body)
+	contents, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, false, err
 	}
 
-	dec := json.NewDecoder(strings.NewReader(string(resp)))
-	var m interface{}
-	err = dec.Decode(&m)
+	var jsonObject map[string]interface{}
+
+	err = json.Unmarshal(contents, &jsonObject)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("Unable to unmarshal json %s", err)
 	}
 
-	// If the web request was successful we should get back a
-	// map in JSON form. If it failed we should get back an error
-	// message in string form. Make sure we got a map.
-	f, ok := m.(map[string]interface{})
-	if !ok {
-		return nil, false, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", string(resp))
-	}
-
-	return f, false, nil
+	return jsonObject, false, nil
 }
 
 // GetOptions looks up a single ticker symbol and returns its options.
 func GetOptions(security sec.Security) (sec.Security, error) {
+	cacheStale := false
+
 	today := time.Now().Format("20060102")
 
 	url := "https://api.tradeking.com/v1/market/options/search.json?symbol=" + security.Ticker + "&query=xdate-gte:" + today
 
 	response, err := cache.Read(today + url)
 	if err != nil {
+		cacheStale = true
 		for {
 			var retryable bool
 			response, retryable, err = webRequest(url)
@@ -301,7 +295,7 @@ func GetOptions(security sec.Security) (sec.Security, error) {
 	}
 
 	// Only update the cache if the options fields were populated.
-	if security.HasOptions() {
+	if cacheStale && security.HasOptions() {
 		cache.Update(today+url, response)
 	}
 

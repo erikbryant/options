@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -67,27 +66,19 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		return nil, false, fmt.Errorf("Got an unexpected StatusCode %v", response)
 	}
 
-	resp, err := ioutil.ReadAll(response.Body)
+	contents, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, false, err
 	}
 
-	dec := json.NewDecoder(strings.NewReader(string(resp)))
-	var m interface{}
-	err = dec.Decode(&m)
+	var jsonObject map[string]interface{}
+
+	err = json.Unmarshal(contents, &jsonObject)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("Unable to unmarshal json %s", err)
 	}
 
-	// If the web request was successful we should get back a
-	// map in JSON form. If it failed we should get back an error
-	// message in string form. Make sure we got a map.
-	f, ok := m.(map[string]interface{})
-	if !ok {
-		return nil, false, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", string(resp))
-	}
-
-	return f, false, nil
+	return jsonObject, false, nil
 }
 
 // parseEarnings parses the earnings json returned from finnhub.
@@ -167,12 +158,14 @@ func EarningDates(start, end string) (map[string]string, error) {
 
 // GetStock looks up a single ticker symbol returns the security.
 func GetStock(security sec.Security) (sec.Security, bool, error) {
+	cacheStale := false
 	today := time.Now().Format("20060102")
 
 	url := "https://finnhub.io/api/v1/quote?symbol=" + security.Ticker
 
 	response, err := cache.Read(today + url)
 	if err != nil {
+		cacheStale = true
 		var retryable bool
 		response, retryable, err = webRequest(url)
 		if err != nil {
@@ -186,7 +179,7 @@ func GetStock(security sec.Security) (sec.Security, bool, error) {
 	}
 
 	// Only update the cache if the price was populated.
-	if security.Price > 0 {
+	if cacheStale && security.Price > 0 {
 		cache.Update(today+url, response)
 	}
 

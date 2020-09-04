@@ -46,26 +46,8 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 			return nil, false, fmt.Errorf("Error fetching symbol data %s", err)
 		}
 		if response.StatusCode == 429 {
-			fmt.Println(response)
-			resp, err := ioutil.ReadAll(response.Body)
-			if err != nil {
-				return nil, false, err
-			}
-			dec := json.NewDecoder(strings.NewReader(string(resp)))
-			var m interface{}
-			err = dec.Decode(&m)
-			if err != nil {
-				return nil, false, err
-			}
-			fmt.Println(m)
-			// after, err := time.ParseDuration(response.Header["X-Ratelimit-Retry-After"][0] + "s")
-			// if err != nil || after > 5 {
-			// 	return nil, true, fmt.Errorf("Throttled")
-			// }
-			// fmt.Printf("Throttled. Backing off for %s...", after)
-			// time.Sleep(after)
-			// fmt.Printf("done\n")
-			continue
+			// TODO: Parse the response to see how long to wait.
+			return nil, true, fmt.Errorf("Throttled")
 		}
 		if response.StatusCode == 200 {
 			break
@@ -73,27 +55,19 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		return nil, false, fmt.Errorf("Got an unexpected StatusCode %v", response)
 	}
 
-	resp, err := ioutil.ReadAll(response.Body)
+	contents, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, false, err
 	}
 
-	dec := json.NewDecoder(strings.NewReader(string(resp)))
-	var m interface{}
-	err = dec.Decode(&m)
+	var jsonObject map[string]interface{}
+
+	err = json.Unmarshal(contents, &jsonObject)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("Unable to unmarshal json %s", err)
 	}
 
-	// If the web request was successful we should get back a
-	// map in JSON form. If it failed we should get back an error
-	// message in string form. Make sure we got a map.
-	f, ok := m.([]interface{})[0].(map[string]interface{})
-	if !ok {
-		return nil, false, fmt.Errorf("RequestJSON: Expected []map, got: /%s/", string(resp))
-	}
-
-	return f, false, nil
+	return jsonObject, false, nil
 }
 
 // parsePrices parses the quote json returned from finnhub.
@@ -113,6 +87,7 @@ func parsePrices(m map[string]interface{}, security sec.Security) (sec.Security,
 
 // GetPrices looks up a single ticker symbol and returns its options.
 func GetPrices(security sec.Security) (sec.Security, error) {
+	cacheStale := false
 	today := time.Now().Format("20060102")
 
 	d := time.Now().Format("2006-1-2")
@@ -121,6 +96,7 @@ func GetPrices(security sec.Security) (sec.Security, error) {
 
 	response, err := cache.Read(today + url)
 	if err != nil {
+		cacheStale = true
 		for {
 			var retryable bool
 			response, retryable, err = webRequest(url)
@@ -141,9 +117,9 @@ func GetPrices(security sec.Security) (sec.Security, error) {
 	}
 
 	// Only update the cache if the options fields were populated.
-	// if security.HasOptions() {
-	// 	cache.Update(today+url, response)
-	// }
+	if cacheStale && security.HasOptions() {
+		cache.Update(today+url, response)
+	}
 
 	return security, nil
 }

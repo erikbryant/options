@@ -8,7 +8,6 @@ import (
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
 	"io/ioutil"
-	"strings"
 	"time"
 )
 
@@ -268,24 +267,14 @@ func Symbol(security sec.Security) (sec.Security, error) {
 		return security, fmt.Errorf("Unexpected response code %d getting symbol '%s'", response.StatusCode, security.Ticker)
 	}
 
-	s, err := ioutil.ReadAll(response.Body)
+	contents, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return security, err
 	}
 
-	dec := json.NewDecoder(strings.NewReader(string(s)))
-	var i interface{}
-	err = dec.Decode(&i)
+	err = json.Unmarshal(contents, &ocs)
 	if err != nil {
-		return security, err
-	}
-
-	// If the web request was successful we should get back a
-	// map in JSON form. If it failed we should get back an error
-	// message in string form. Make sure we got a map.
-	ocs, ok := i.(map[string]interface{})
-	if !ok {
-		return security, fmt.Errorf("RequestJSON: Expected a map, got: /%s/", string(s))
+		return security, fmt.Errorf("Unable to unmarshal json %s", err)
 	}
 
 	security, err = parseOCS(ocs, security)

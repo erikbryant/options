@@ -8,12 +8,15 @@ import (
 	"github.com/erikbryant/options/options"
 	"github.com/erikbryant/options/tiingo"
 	"github.com/erikbryant/options/tradeking"
+	"os"
+	"runtime/pprof"
 	"sort"
 	"strings"
 	"time"
 )
 
 var (
+	cpuprofile  = flag.String("cpuprofile", "", "Enable profiling and write cpu profile to file")
 	tickers     = flag.String("tickers", "", "Comma separated list of stocks to get option data for")
 	csv         = flag.Bool("csv", false, "Output in CSV format?")
 	regenerate  = flag.Bool("regenerate", false, "Regenerate option database?")
@@ -74,6 +77,15 @@ func combine(list1, list2 []string, skip []string) []string {
 func main() {
 	flag.Parse()
 
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			fmt.Println(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	tiingo.Init(*passPhrase)
 	tradeking.Init(*passPhrase)
 	finnhub.Init(*passPhrase)
@@ -125,7 +137,7 @@ func main() {
 				continue
 			}
 
-			if *expiration != security.Puts[put].Expiration {
+			if *expiration < security.Puts[put].Expiration {
 				continue
 			}
 
