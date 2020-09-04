@@ -229,7 +229,14 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 			return nil, false, fmt.Errorf("Error fetching symbol data %s", err)
 		}
 		if response.StatusCode == 429 {
-			after, err := time.ParseDuration(response.Header["X-Ratelimit-Retry-After"][0] + "s")
+			retryAfter, ok := response.Header["X-Ratelimit-Retry-After"]
+			if !ok {
+				return nil, true, fmt.Errorf("Could not parse throttling header")
+			}
+			if len(retryAfter) <= 0 {
+				return nil, true, fmt.Errorf("Could not parse throttling seconds")
+			}
+			after, err := time.ParseDuration(retryAfter[0] + "s")
 			if err != nil || after > 5 {
 				return nil, true, fmt.Errorf("Throttled")
 			}
