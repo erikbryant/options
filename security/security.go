@@ -73,7 +73,7 @@ func (security *Security) ExpirationPeriod() (int, error) {
 	// But, don't look out too far. We might get into LEAPS or something with
 	// very far expirations.
 
-	const minExpirations = 8
+	const minExpirations = 5
 
 	if len(expirations) < minExpirations {
 		return -1, fmt.Errorf("Not enough expirations to determine period %s %v", security.Ticker, expirations)
