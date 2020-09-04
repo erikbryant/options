@@ -147,7 +147,18 @@ func FindSecuritiesWithOptions(useFile, optionsFile string) ([]string, error) {
 			fmt.Println(err)
 			continue
 		}
+
 		if !security.HasOptions() {
+			continue
+		}
+
+		period, err := security.ExpirationPeriod()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		if period > 7 {
+			fmt.Println("Security expiration dates are too infrequent", security.Ticker, period)
 			continue
 		}
 

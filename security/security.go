@@ -2,6 +2,7 @@ package security
 
 import (
 	"fmt"
+	"sort"
 	"time"
 )
 
@@ -47,6 +48,62 @@ type Security struct {
 // HasOptions returns whether the security has options.
 func (security *Security) HasOptions() bool {
 	return len(security.Puts) != 0 && len(security.Calls) != 0 && len(security.Strikes) != 0
+}
+
+// ExpirationPeriod tries to determine the time between expiration dates.
+func (security *Security) ExpirationPeriod() (int, error) {
+	uniques := make(map[string]int)
+
+	for _, put := range security.Puts {
+		uniques[put.Expiration] = 1
+	}
+
+	var expirations []string
+
+	for expiration := range uniques {
+		expirations = append(expirations, expiration)
+	}
+
+	sort.Strings(expirations)
+
+	// Look for there to be a lot of expiration dates. If there are only a few
+	// then we cannot get an accurate period.
+	// The choice of which dates to look at is arbitrary, but as long as we are
+	// looking out at least a month we are sure to be fine.
+	// But, don't look out too far. We might get into LEAPS or something with
+	// very far expirations.
+
+	const minExpirations = 8
+
+	if len(expirations) < minExpirations {
+		return -1, fmt.Errorf("Not enough expirations to determine period %s %v", security.Ticker, expirations)
+	}
+
+	var max = 0
+	var prev time.Time
+	var next time.Time
+	var err error
+
+	prev, err = time.Parse("20060102", expirations[0])
+	if err != nil {
+		return -1, fmt.Errorf("Could not parse first expiration date %s %s", err, expirations[0])
+	}
+
+	for i := 1; i < minExpirations; i++ {
+		next, err = time.Parse("20060102", expirations[i])
+		if err != nil {
+			return -1, fmt.Errorf("Could not parse next expiration date %s %s", err, expirations[i])
+		}
+
+		days := int(next.Sub(prev).Hours() / 24)
+		if days > max {
+			max = days
+		}
+
+		prev = next
+	}
+
+	return max, nil
 }
 
 // PrintPut prints the put data for a single ticker in CSV or tabulated and with or without a header.
