@@ -27,8 +27,9 @@ var (
 	maxStrike   = flag.Float64("maxStrike", 999999999, "Only tickers below this strike price")
 	minYield    = flag.Float64("minYield", 0, "Only tickers with at least this bid/strike yield")
 	minSafety   = flag.Float64("minSafety", 0, "Only tickers with at least this safety spread")
-	skiplist    = flag.String("skiplist", "JNUG,LABD,LABU,NUGT,SQQQ,TECS,TNA,TQQQ,TZA,UVXY,VIXY,VXX", "Comma separated list of stocks to skip")
+	skip        = flag.String("skip", "", "Comma separated list of stocks to skip")
 	passPhrase  = flag.String("passPhrase", "", "Passphrase to unlock API key(s)")
+	itm         = flag.Bool("itm", false, "Include in-the-money options?")
 )
 
 func usage() {
@@ -42,6 +43,24 @@ func usage() {
 	fmt.Println("    options -all -optionsFile options.csv  -expiration 20200821[-csv] [-header] [-maxStrike 32.20] [-minYield 4.5]")
 	fmt.Println("  Find interesting option plays, limited to these tickers")
 	fmt.Println("    options -tickers=<ticker1,ticker2,...>  -expiration 20200821[-csv] [-header] [-maxStrike 32.20] [-minYield 4.5]")
+}
+
+var skipList = []string{
+	"BRZU",
+	"JNUG",
+	"LABD",
+	"LABU",
+	"NUGT",
+	"SPXU",
+	"SQQQ",
+	"TECS",
+	"TNA",
+	"TQQQ",
+	"TZA",
+	"UVXY",
+	"VIXY",
+	"VXX",
+	"YINN",
 }
 
 // combine merges two lists into one, removes any elements that are in skip, and returns the sorted remainder.
@@ -120,8 +139,14 @@ func main() {
 		}
 	}
 
+	// Tickers to skip
+	skip := strings.Split(*skip, ",")
+	for _, val := range skipList {
+		skip = append(skip, val)
+	}
+
 	// Get the list of tickers to scan.
-	t = combine(t, strings.Split(*tickers, ","), strings.Split(*skiplist, ","))
+	t = combine(t, strings.Split(*tickers, ","), skip)
 
 	// Load underlying data for all tickers.
 	securities, err := options.Securities(t)
@@ -150,6 +175,11 @@ func main() {
 			}
 
 			if security.Puts[put].SafetySpread < *minSafety {
+				continue
+			}
+
+			// If the put is in the money, only consider it if '-itm=true'.
+			if security.Puts[put].Strike > security.Price && !*itm {
 				continue
 			}
 
