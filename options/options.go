@@ -28,7 +28,7 @@ func Securities(tickers []string) ([]sec.Security, error) {
 	var securities []sec.Security
 
 	for _, ticker := range tickers {
-		fmt.Printf("\r%s ", ticker)
+		fmt.Printf("\r%s    ", ticker)
 		security, err := Security(ticker)
 		if err != nil {
 			fmt.Printf("Error getting security data %s\n", err)
@@ -98,6 +98,7 @@ func Security(ticker string) (sec.Security, error) {
 		security.Puts[put].LastTradeDays = int64(time.Now().Sub(security.Puts[put].LastTradeDate).Hours() / 24)
 		security.Puts[put].BidStrikeRatio = security.Puts[put].Bid / security.Puts[put].Strike * 100
 		security.Puts[put].SafetySpread = (security.Price - (security.Puts[put].Strike - security.Puts[put].Bid)) / security.Price * 100
+		security.Puts[put].CallSpread = security.CallSpread(security.Puts[put].Expiration)
 	}
 
 	return security, nil

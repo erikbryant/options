@@ -22,6 +22,7 @@ type Contract struct {
 	LastTradeDays   int64   // Age of last trade in days
 	BidStrikeRatio  float64 // bid / strike
 	SafetySpread    float64 // distance between share price and cost basis
+	CallSpread      float64 // how many strikes out do calls still have bids
 }
 
 // DayRange represents a single (historical) trading day.
@@ -106,6 +107,26 @@ func (security *Security) ExpirationPeriod() (int, error) {
 	return max, nil
 }
 
+// CallSpread returns the relative distance to the highest OTM bid that is non-zero.
+func (security *Security) CallSpread(expiration string) float64 {
+	maxStrike := 0.0
+
+	for _, call := range security.Calls {
+		if call.Expiration != expiration {
+			continue
+		}
+		if call.Strike >= security.Price && call.Bid > 0 && call.Strike > maxStrike {
+			maxStrike = call.Strike
+		}
+	}
+
+	if maxStrike == 0 {
+		return 0.0
+	}
+
+	return 100.0 * (maxStrike - security.Price) / security.Price
+}
+
 // PrintPut prints the put data for a single ticker in CSV or tabulated and with or without a header.
 func (security *Security) PrintPut(put int, csv, header bool, expiration string) {
 	var separator string
@@ -135,11 +156,13 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 		fmt.Printf(separator)
 		fmt.Printf("%8s", "Safety")
 		fmt.Printf(separator)
+		fmt.Printf("%8s", "CallSprd")
+		fmt.Printf(separator)
 		fmt.Printf("%8s", "Age")
 		fmt.Printf(separator)
 		fmt.Printf("%8s", "Earnings")
 		fmt.Printf(separator)
-		fmt.Printf("%8s", "Price+")
+		fmt.Printf("%8s", "In the $")
 		fmt.Printf(separator)
 		fmt.Printf("%8s", "Odd Lot")
 		fmt.Printf("\n")
@@ -156,9 +179,9 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 	if security.EarningsDate != "" && security.EarningsDate <= expiration {
 		earnings = "E"
 	}
-	pricePlus := ""
+	inTheMoney := ""
 	if security.Puts[put].Strike >= security.Price {
-		pricePlus = "O"
+		inTheMoney = "I"
 	}
 	oddLot := ""
 	if security.Puts[put].Size != 100 {
@@ -183,11 +206,13 @@ func (security *Security) PrintPut(put int, csv, header bool, expiration string)
 	fmt.Printf(separator)
 	fmt.Printf("%7.1f%%", security.Puts[put].SafetySpread)
 	fmt.Printf(separator)
+	fmt.Printf("%7.1f%%", security.Puts[put].CallSpread)
+	fmt.Printf(separator)
 	fmt.Printf("%8s", lastTrade)
 	fmt.Printf(separator)
 	fmt.Printf("%8s", earnings)
 	fmt.Printf(separator)
-	fmt.Printf("%8s", pricePlus)
+	fmt.Printf("%8s", inTheMoney)
 	fmt.Printf(separator)
 	fmt.Printf("%8s", oddLot)
 	fmt.Printf("\n")
