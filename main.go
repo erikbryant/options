@@ -28,7 +28,7 @@ var (
 	minSafety   = flag.Float64("minSafety", 0, "Only tickers with at least this safety spread")
 	skip        = flag.String("skip", "", "Comma separated list of stocks to skip")
 	passPhrase  = flag.String("passPhrase", "", "Passphrase to unlock API key(s)")
-	itm         = flag.Bool("itm", false, "Include in-the-money options?")
+	itm         = flag.Bool("itm", true, "Include in-the-money options?")
 )
 
 func usage() {
