@@ -1,6 +1,7 @@
 .DS_Store
 
 web-request-cache
+weeklyOptions_*
 
 # Binaries for programs and plugins
 *.exe

@@ -18,7 +18,6 @@ import (
 var (
 	cpuprofile  = flag.String("cpuprofile", "", "Enable profiling and write cpu profile to file")
 	tickers     = flag.String("tickers", "", "Comma separated list of stocks to get option data for")
-	csv         = flag.Bool("csv", false, "Output in CSV format?")
 	regenerate  = flag.Bool("regenerate", false, "Regenerate option database?")
 	useFile     = flag.String("useFile", "", "USE equity database filename")
 	optionsFile = flag.String("optionsFile", "", "Options database filename")
@@ -192,7 +191,7 @@ func main() {
 				continue
 			}
 
-			security.PrintPut(put, *csv, header, *expiration)
+			security.PrintPut(put, header, *expiration)
 
 			header = false
 		}

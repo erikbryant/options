@@ -2,6 +2,7 @@ package security
 
 import (
 	"fmt"
+	"github.com/erikbryant/options/csv"
 	"sort"
 	"time"
 )
@@ -23,6 +24,8 @@ type Contract struct {
 	BidStrikeRatio  float64 // bid / strike
 	SafetySpread    float64 // distance between share price and cost basis
 	CallSpread      float64 // how many strikes out do calls still have bids
+	// Formatted output values
+	column map[string]string
 }
 
 // DayRange represents a single (historical) trading day.
@@ -45,6 +48,12 @@ type Security struct {
 	Calls        []Contract
 	EarningsDate string
 }
+
+var (
+	colsStdout = []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "oddLot"}
+	colsEb     = []string{"ticker", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "oddLot", "lots", "exposure", "premium"}
+	colsCc     = []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "oddLot", "notes", "otmItm", "lots", "premium", "exposure"}
+)
 
 // HasOptions returns whether the security has options.
 func (security *Security) HasOptions() bool {
@@ -127,93 +136,134 @@ func (security *Security) CallSpread(expiration string) float64 {
 	return 100.0 * (maxStrike - security.Price) / security.Price
 }
 
-// PrintPut prints the put data for a single ticker in CSV or tabulated and with or without a header.
-func (security *Security) PrintPut(put int, csv, header bool, expiration string) {
+// cell returns a header and cell string formatted for printing.
+func (security *Security) cell(col string, put int, expiration string) (string, string) {
+	h := fmt.Sprintf("col not found: %s", col)
+	c := fmt.Sprintf("col not found: %s", col)
+
+	switch col {
+	case "ticker":
+		h = fmt.Sprintf("%8s", "Ticker")
+		c = fmt.Sprintf("%8s", security.Ticker)
+	case "expiration":
+		h = fmt.Sprintf("%10s", "Expiration")
+		c = fmt.Sprintf("%10s", security.Puts[put].Expiration)
+	case "price":
+		h = fmt.Sprintf("%8s", "Price")
+		c = fmt.Sprintf("$%8.02f", security.Price)
+	case "strike":
+		h = fmt.Sprintf("%8s", "Strike")
+		c = fmt.Sprintf("$%8.02f", security.Puts[put].Strike)
+	case "last":
+		h = fmt.Sprintf("%8s", "Last")
+		c = fmt.Sprintf("$%8.02f", security.Puts[put].Last)
+	case "bid":
+		h = fmt.Sprintf("%8s", "Bid")
+		c = fmt.Sprintf("$%8.02f", security.Puts[put].Bid)
+	case "ask":
+		h = fmt.Sprintf("%8s", "Ask")
+		c = fmt.Sprintf("$%8.02f", security.Puts[put].Ask)
+	case "bidStrikeRatio":
+		h = fmt.Sprintf("%8s", "B/S ratio")
+		c = fmt.Sprintf("%8.1f%%", security.Puts[put].BidStrikeRatio)
+	case "safetySpread":
+		h = fmt.Sprintf("%8s", "Safety")
+		c = fmt.Sprintf("%7.1f%%", security.Puts[put].SafetySpread)
+	case "callSpread":
+		h = fmt.Sprintf("%8s", "CallSprd")
+		c = fmt.Sprintf("%7.1f%%", security.Puts[put].CallSpread)
+	case "age":
+		h = fmt.Sprintf("%8s", "Age")
+		// TODO: If it is the weekend, then make the threshold for
+		// printing higher (i.e., count these as business days, not
+		// calendar days).
+		var lastTrade string
+		if security.Puts[put].LastTradeDays >= 2 {
+			lastTrade = fmt.Sprintf("%dd", security.Puts[put].LastTradeDays)
+		}
+		c = fmt.Sprintf("%8s", lastTrade)
+	case "earnings":
+		h = fmt.Sprintf("%8s", "Earnings")
+		earnings := ""
+		if security.EarningsDate != "" && security.EarningsDate <= expiration {
+			earnings = "E"
+		}
+		c = fmt.Sprintf("%8s", earnings)
+	case "itm":
+		h = fmt.Sprintf("%8s", "In the $")
+		inTheMoney := ""
+		if security.Puts[put].Strike >= security.Price {
+			inTheMoney = "I"
+		}
+		c = fmt.Sprintf("%8s", inTheMoney)
+	case "oddLot":
+		h = fmt.Sprintf("%8s", "Odd Lot")
+		oddLot := ""
+		if security.Puts[put].Size != 100 {
+			oddLot = fmt.Sprintf("%d", security.Puts[put].Size)
+		}
+		c = fmt.Sprintf("%8s", oddLot)
+	case "lots":
+		h = fmt.Sprintf("%8s", "Lots")
+		c = fmt.Sprintf("%8d", 0)
+	case "exposure":
+		h = fmt.Sprintf("%8s", "Exposure")
+		c = fmt.Sprintf("$%8.02f", 0.0)
+	case "premium":
+		h = fmt.Sprintf("%8s", "Premium")
+		c = fmt.Sprintf("$%8.02f", 0.0)
+	case "notes":
+		h = fmt.Sprintf("%8s", "Notes")
+		c = fmt.Sprintf("%8s", "")
+	case "otmItm":
+		h = fmt.Sprintf("%8s", "OTM/ITM")
+		c = fmt.Sprintf("%8s", "")
+	}
+
+	return h, c
+}
+
+// formatPut formats the put data for a single ticker.
+func (security *Security) formatPut(cols []string, put int, csv, header bool, expiration string) string {
 	var separator string
+	var output string
 
 	if csv {
-		separator = ", "
+		separator = ","
 	} else {
 		separator = "  "
 	}
 
+	output = ""
 	if header {
-		fmt.Printf("%8s", "Ticker")
-		fmt.Printf(separator)
-		fmt.Printf("%10s", "Expiration")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Price")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Strike")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Last")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Bid")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Ask")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "B/S ratio")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Safety")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "CallSprd")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Age")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Earnings")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "In the $")
-		fmt.Printf(separator)
-		fmt.Printf("%8s", "Odd Lot")
-		fmt.Printf("\n")
+		for _, col := range cols {
+			h, _ := security.cell(col, put, expiration)
+			output += h
+			output += separator
+		}
+		output += "\n"
 	}
 
-	// TODO: If it is the weekend, then make the threshold for
-	// printing higher.
-	var lastTrade string
-	if security.Puts[put].LastTradeDays >= 2 {
-		lastTrade = fmt.Sprintf("%dd", security.Puts[put].LastTradeDays)
+	for _, col := range cols {
+		_, c := security.cell(col, put, expiration)
+		output += c
+		output += separator
 	}
+	output += "\n"
 
-	earnings := ""
-	if security.EarningsDate != "" && security.EarningsDate <= expiration {
-		earnings = "E"
-	}
-	inTheMoney := ""
-	if security.Puts[put].Strike >= security.Price {
-		inTheMoney = "I"
-	}
-	oddLot := ""
-	if security.Puts[put].Size != 100 {
-		oddLot = fmt.Sprintf("%d", security.Puts[put].Size)
-	}
+	return output
+}
 
-	fmt.Printf("%8s", security.Ticker)
-	fmt.Printf(separator)
-	fmt.Printf("%10s", security.Puts[put].Expiration)
-	fmt.Printf(separator)
-	fmt.Printf("%8.2f", security.Price)
-	fmt.Printf(separator)
-	fmt.Printf("%8.2f", security.Puts[put].Strike)
-	fmt.Printf(separator)
-	fmt.Printf("%8.2f", security.Puts[put].Last)
-	fmt.Printf(separator)
-	fmt.Printf("%8.2f", security.Puts[put].Bid)
-	fmt.Printf(separator)
-	fmt.Printf("%8.2f", security.Puts[put].Ask)
-	fmt.Printf(separator)
-	fmt.Printf("%8.1f%%", security.Puts[put].BidStrikeRatio)
-	fmt.Printf(separator)
-	fmt.Printf("%7.1f%%", security.Puts[put].SafetySpread)
-	fmt.Printf(separator)
-	fmt.Printf("%7.1f%%", security.Puts[put].CallSpread)
-	fmt.Printf(separator)
-	fmt.Printf("%8s", lastTrade)
-	fmt.Printf(separator)
-	fmt.Printf("%8s", earnings)
-	fmt.Printf(separator)
-	fmt.Printf("%8s", inTheMoney)
-	fmt.Printf(separator)
-	fmt.Printf("%8s", oddLot)
-	fmt.Printf("\n")
+// PrintPut prints the put data for a single ticker to stdout and the personalized CSV files.
+func (security *Security) PrintPut(put int, header bool, expiration string) {
+	var output string
+
+	output = security.formatPut(colsStdout, put, false, header, expiration)
+	fmt.Printf("%s", output)
+
+	output = security.formatPut(colsEb, put, true, header, expiration)
+	csv.AppendFile("weeklyOptions_"+expiration+"_eb.csv", output, header)
+
+	output = security.formatPut(colsCc, put, true, header, expiration)
+	csv.AppendFile("weeklyOptions_"+expiration+"_cc.csv", output, header)
 }
