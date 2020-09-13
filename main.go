@@ -58,6 +58,7 @@ var skipList = []string{
 	"TNA",
 	"TQQQ",
 	"TZA",
+	"UCO",
 	"UPRO",
 	"UVXY",
 	"VIXY",
