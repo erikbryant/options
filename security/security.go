@@ -150,19 +150,19 @@ func (security *Security) cell(col string, put int, expiration string) (string, 
 		c = fmt.Sprintf("%10s", security.Puts[put].Expiration)
 	case "price":
 		h = fmt.Sprintf("%8s", "Price")
-		c = fmt.Sprintf("$%8.02f", security.Price)
+		c = fmt.Sprintf("$%7.02f", security.Price)
 	case "strike":
 		h = fmt.Sprintf("%8s", "Strike")
-		c = fmt.Sprintf("$%8.02f", security.Puts[put].Strike)
+		c = fmt.Sprintf("$%7.02f", security.Puts[put].Strike)
 	case "last":
 		h = fmt.Sprintf("%8s", "Last")
-		c = fmt.Sprintf("$%8.02f", security.Puts[put].Last)
+		c = fmt.Sprintf("$%7.02f", security.Puts[put].Last)
 	case "bid":
 		h = fmt.Sprintf("%8s", "Bid")
-		c = fmt.Sprintf("$%8.02f", security.Puts[put].Bid)
+		c = fmt.Sprintf("$%7.02f", security.Puts[put].Bid)
 	case "ask":
 		h = fmt.Sprintf("%8s", "Ask")
-		c = fmt.Sprintf("$%8.02f", security.Puts[put].Ask)
+		c = fmt.Sprintf("$%7.02f", security.Puts[put].Ask)
 	case "bidStrikeRatio":
 		h = fmt.Sprintf("%8s", "B/S ratio")
 		c = fmt.Sprintf("%8.1f%%", security.Puts[put].BidStrikeRatio)
@@ -193,7 +193,7 @@ func (security *Security) cell(col string, put int, expiration string) (string, 
 		h = fmt.Sprintf("%8s", "In the $")
 		inTheMoney := ""
 		if security.Puts[put].Strike >= security.Price {
-			inTheMoney = "I"
+			inTheMoney = "ITM"
 		}
 		c = fmt.Sprintf("%8s", inTheMoney)
 	case "oddLot":
@@ -208,16 +208,20 @@ func (security *Security) cell(col string, put int, expiration string) (string, 
 		c = fmt.Sprintf("%8d", 0)
 	case "exposure":
 		h = fmt.Sprintf("%8s", "Exposure")
-		c = fmt.Sprintf("$%8.02f", 0.0)
+		c = fmt.Sprintf("$%7.02f", 0.0)
 	case "premium":
 		h = fmt.Sprintf("%8s", "Premium")
-		c = fmt.Sprintf("$%8.02f", 0.0)
+		c = fmt.Sprintf("$%7.02f", 0.0)
 	case "notes":
 		h = fmt.Sprintf("%8s", "Notes")
 		c = fmt.Sprintf("%8s", "")
 	case "otmItm":
 		h = fmt.Sprintf("%8s", "OTM/ITM")
-		c = fmt.Sprintf("%8s", "")
+		if security.Puts[put].Strike >= security.Price {
+			c = fmt.Sprintf("%8s", "ITM")
+		} else {
+			c = fmt.Sprintf("%8s", "OTM")
+		}
 	}
 
 	return h, c
