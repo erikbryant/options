@@ -50,9 +50,9 @@ type Security struct {
 }
 
 var (
-	colsStdout = []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "oddLot"}
-	colsEb     = []string{"ticker", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "oddLot", "lots", "exposure", "premium"}
-	colsCc     = []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "oddLot", "notes", "otmItm", "lots", "premium", "exposure"}
+	colsStdout = []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize"}
+	colsEb     = []string{"ticker", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"}
+	colsCc     = []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "exposure"}
 )
 
 // HasOptions returns whether the security has options.
@@ -116,6 +116,17 @@ func (security *Security) ExpirationPeriod() (int, error) {
 	return max, nil
 }
 
+// colName returns the column name that a spreadsheet would give it.
+func colName(cols []string, col string) string {
+	for i := range cols {
+		if cols[i] == col {
+			return fmt.Sprintf("%c", i+'A')
+		}
+	}
+
+	return "!" + col
+}
+
 // CallSpread returns the relative distance to the highest OTM bid that is non-zero.
 func (security *Security) CallSpread(expiration string) float64 {
 	maxStrike := 0.0
@@ -137,7 +148,7 @@ func (security *Security) CallSpread(expiration string) float64 {
 }
 
 // cell returns a header and cell string formatted for printing.
-func (security *Security) cell(col string, put int, expiration string) (string, string) {
+func (security *Security) cell(cols []string, col string, put int, expiration string) (string, string) {
 	h := fmt.Sprintf("col not found: %s", col)
 	c := fmt.Sprintf("col not found: %s", col)
 
@@ -196,22 +207,24 @@ func (security *Security) cell(col string, put int, expiration string) (string, 
 			inTheMoney = "ITM"
 		}
 		c = fmt.Sprintf("%8s", inTheMoney)
-	case "oddLot":
-		h = fmt.Sprintf("%8s", "Odd Lot")
-		oddLot := ""
-		if security.Puts[put].Size != 100 {
-			oddLot = fmt.Sprintf("%d", security.Puts[put].Size)
-		}
-		c = fmt.Sprintf("%8s", oddLot)
+	case "lotSize":
+		h = fmt.Sprintf("%8s", "Lot Size")
+		c = fmt.Sprintf("%8d", security.Puts[put].Size)
 	case "lots":
 		h = fmt.Sprintf("%8s", "Lots")
 		c = fmt.Sprintf("%8d", 0)
 	case "exposure":
 		h = fmt.Sprintf("%8s", "Exposure")
-		c = fmt.Sprintf("$%7.02f", 0.0)
+		strikeCol := colName(cols, "strike")
+		lotSizeCol := colName(cols, "lotSize")
+		lotsCol := colName(cols, "lots")
+		c = fmt.Sprintf("=%s%d*%s%d*%s%d", strikeCol, row, lotSizeCol, row, lotsCol, row)
 	case "premium":
 		h = fmt.Sprintf("%8s", "Premium")
-		c = fmt.Sprintf("$%7.02f", 0.0)
+		bidCol := colName(cols, "bid")
+		lotSizeCol := colName(cols, "lotSize")
+		lotsCol := colName(cols, "lots")
+		c = fmt.Sprintf("=%s%d*%s%d*%s%d", bidCol, row, lotSizeCol, row, lotsCol, row)
 	case "notes":
 		h = fmt.Sprintf("%8s", "Notes")
 		c = fmt.Sprintf("%8s", "")
@@ -241,7 +254,7 @@ func (security *Security) formatPut(cols []string, put int, csv, header bool, ex
 	output = ""
 	if header {
 		for _, col := range cols {
-			h, _ := security.cell(col, put, expiration)
+			h, _ := security.cell(cols, col, put, expiration)
 			output += h
 			output += separator
 		}
@@ -249,7 +262,7 @@ func (security *Security) formatPut(cols []string, put int, csv, header bool, ex
 	}
 
 	for _, col := range cols {
-		_, c := security.cell(col, put, expiration)
+		_, c := security.cell(cols, col, put, expiration)
 		output += c
 		output += separator
 	}
@@ -258,9 +271,15 @@ func (security *Security) formatPut(cols []string, put int, csv, header bool, ex
 	return output
 }
 
+var row = 1
+
 // PrintPut prints the put data for a single ticker to stdout and the personalized CSV files.
 func (security *Security) PrintPut(put int, header bool, expiration string) {
 	var output string
+
+	if header {
+		row++
+	}
 
 	output = security.formatPut(colsStdout, put, false, header, expiration)
 	fmt.Printf("%s", output)
@@ -270,4 +289,39 @@ func (security *Security) PrintPut(put int, header bool, expiration string) {
 
 	output = security.formatPut(colsCc, put, true, header, expiration)
 	csv.AppendFile("weeklyOptions_"+expiration+"_cc.csv", output, header)
+
+	row++
+}
+
+// formatFooter generates the footer for the CSV files.
+func formatFooter(cols []string) string {
+	output := ""
+
+	for _, col := range cols {
+		switch col {
+		case "premium":
+			name := colName(cols, "premium")
+			output += fmt.Sprintf("=sum(%s2:%s%d),", name, name, row-1)
+		case "exposure":
+			name := colName(cols, "exposure")
+			output += fmt.Sprintf("=sum(%s2:%s%d),", name, name, row-1)
+		default:
+			output += " ,"
+		}
+	}
+
+	return output
+}
+
+// PrintFooter prints the closing rows for the CSV files.
+func PrintFooter(expiration string) {
+	var output string
+
+	output = formatFooter(colsEb)
+	csv.AppendFile("weeklyOptions_"+expiration+"_eb.csv", output, false)
+
+	output = formatFooter(colsCc)
+	csv.AppendFile("weeklyOptions_"+expiration+"_cc.csv", output, false)
+
+	row++
 }

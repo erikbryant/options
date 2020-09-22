@@ -6,6 +6,7 @@ import (
 	csvFmt "github.com/erikbryant/options/csv"
 	"github.com/erikbryant/options/finnhub"
 	"github.com/erikbryant/options/options"
+	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/tiingo"
 	"github.com/erikbryant/options/tradeking"
 	"os"
@@ -200,4 +201,6 @@ func main() {
 			header = false
 		}
 	}
+
+	sec.PrintFooter(*expiration)
 }
