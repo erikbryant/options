@@ -70,6 +70,7 @@ func getStock(security sec.Security) (sec.Security, error) {
 		}
 		fmt.Println("TradeKing is throttling, switching to Finnhub")
 		primary = "finnhub"
+		time.Sleep(6 * time.Second)
 	}
 
 	return security, nil
