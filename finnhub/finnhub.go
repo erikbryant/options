@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/erikbryant/aes"
 	"github.com/erikbryant/options/cache"
+	"github.com/erikbryant/options/date"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
 	"io/ioutil"
@@ -109,14 +110,26 @@ func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 
 // parseQuote parses the quote json returned from finnhub.
 func parseQuote(m map[string]interface{}, security sec.Security) (sec.Security, error) {
+	t, ok := m["t"]
+	if !ok {
+		return security, fmt.Errorf("Unable to parse quote object timestamp")
+	}
+
 	c, ok := m["c"]
 	if !ok {
-		return security, fmt.Errorf("Unable to parse quote object")
+		return security, fmt.Errorf("Unable to parse quote object close")
 	}
 
 	security.Price, ok = c.(float64)
 	if !ok {
 		return security, fmt.Errorf("Unable to convert c to float64 %v", c)
+	}
+
+	now := time.Now()
+	quoteDate := time.Unix(int64(t.(float64)), 0)
+	sinceClose := date.TimeSinceClose(now)
+	if now.Sub(quoteDate) > (sinceClose + 6*time.Hour + 30*time.Minute) {
+		return security, fmt.Errorf("Security price is stale %s %f %d %v %v %v", security.Ticker, security.Price, int64(t.(float64)), quoteDate, sinceClose, now.Sub(quoteDate))
 	}
 
 	return security, nil
