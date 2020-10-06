@@ -27,6 +27,7 @@ var (
 	maxStrike   = flag.Float64("maxStrike", 999999999, "Only tickers below this strike price")
 	minYield    = flag.Float64("minYield", 0, "Only tickers with at least this bid/strike yield")
 	minSafety   = flag.Float64("minSafety", 0, "Only tickers with at least this safety spread")
+	minCall     = flag.Float64("minCall", 0, "Only tickers with at least this call spread")
 	skip        = flag.String("skip", "", "Comma separated list of stocks to skip")
 	passPhrase  = flag.String("passPhrase", "", "Passphrase to unlock API key(s)")
 	itm         = flag.Bool("itm", true, "Include in-the-money options?")
@@ -183,6 +184,10 @@ func main() {
 			}
 
 			if security.Puts[put].SafetySpread < *minSafety {
+				continue
+			}
+
+			if security.Puts[put].CallSpread < *minCall {
 				continue
 			}
 
