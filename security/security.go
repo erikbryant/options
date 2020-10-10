@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/erikbryant/options/csv"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -247,8 +248,8 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 	return h, c
 }
 
-// formatPut formats the put data for a single ticker.
-func (security *Security) formatPut(cols []string, put int, csv, header bool, expiration string) string {
+// formatHeader formats the header for the table.
+func (security *Security) formatHeader(cols []string, put int, csv bool, expiration string) string {
 	var separator string
 	var output string
 
@@ -258,14 +259,52 @@ func (security *Security) formatPut(cols []string, put int, csv, header bool, ex
 		separator = "  "
 	}
 
-	output = ""
-	if header {
-		for _, col := range cols {
-			h, _ := security.cell(cols, col, put, expiration)
-			output += h
-			output += separator
+	// The row with space for the available cash and the week's yield pct.
+	for _, col := range cols {
+		switch col {
+		case "premium":
+			pname := colName(cols, "premium")
+			ename := colName(cols, "exposure")
+			output += fmt.Sprintf("=%s2/%s2", pname, ename)
 		}
-		output += "\n"
+		output += separator
+	}
+	output += "\n"
+
+	// The row with the sum of the premium and the exposure.
+	for _, col := range cols {
+		switch col {
+		case "premium":
+			name := colName(cols, "premium")
+			output += fmt.Sprintf("=sum(%s4:%s%d)", name, name, 9999)
+		case "exposure":
+			name := colName(cols, "exposure")
+			output += fmt.Sprintf("=sum(%s4:%s%d)", name, name, 9999)
+		}
+		output += separator
+	}
+	output += "\n"
+
+	// The column names.
+	for _, col := range cols {
+		h, _ := security.cell(cols, col, put, expiration)
+		output += h
+		output += separator
+	}
+	output += "\n"
+
+	return output
+}
+
+// formatPut formats the put data for a single ticker.
+func (security *Security) formatPut(cols []string, put int, csv bool, expiration string) string {
+	var separator string
+	var output string
+
+	if csv {
+		separator = ","
+	} else {
+		separator = "  "
 	}
 
 	for _, col := range cols {
@@ -284,51 +323,30 @@ var row = 1
 func (security *Security) PrintPut(put int, header bool, expiration string) {
 	var output string
 
+	ebFile := "weeklyOptions_" + expiration + "_eb.csv"
+	ccFile := "weeklyOptions_" + expiration + "_cc.csv"
+
 	if header {
-		row++
+		output = security.formatHeader(colsStdout, put, false, expiration)
+		fmt.Printf("%s", output)
+
+		output = security.formatHeader(colsEb, put, true, expiration)
+		csv.AppendFile(ebFile, output, true)
+
+		output = security.formatHeader(colsCc, put, true, expiration)
+		csv.AppendFile(ccFile, output, true)
+
+		row += strings.Count(output, "\n")
 	}
 
-	output = security.formatPut(colsStdout, put, false, header, expiration)
+	output = security.formatPut(colsStdout, put, false, expiration)
 	fmt.Printf("%s", output)
 
-	output = security.formatPut(colsEb, put, true, header, expiration)
-	csv.AppendFile("weeklyOptions_"+expiration+"_eb.csv", output, header)
+	output = security.formatPut(colsEb, put, true, expiration)
+	csv.AppendFile(ebFile, output, false)
 
-	output = security.formatPut(colsCc, put, true, header, expiration)
-	csv.AppendFile("weeklyOptions_"+expiration+"_cc.csv", output, header)
+	output = security.formatPut(colsCc, put, true, expiration)
+	csv.AppendFile(ccFile, output, false)
 
-	row++
-}
-
-// formatFooter generates the footer for the CSV files.
-func formatFooter(cols []string) string {
-	output := ""
-
-	for _, col := range cols {
-		switch col {
-		case "premium":
-			name := colName(cols, "premium")
-			output += fmt.Sprintf("=sum(%s2:%s%d),", name, name, row-1)
-		case "exposure":
-			name := colName(cols, "exposure")
-			output += fmt.Sprintf("=sum(%s2:%s%d),", name, name, row-1)
-		default:
-			output += " ,"
-		}
-	}
-
-	return output
-}
-
-// PrintFooter prints the closing rows for the CSV files.
-func PrintFooter(expiration string) {
-	var output string
-
-	output = formatFooter(colsEb)
-	csv.AppendFile("weeklyOptions_"+expiration+"_eb.csv", output, false)
-
-	output = formatFooter(colsCc)
-	csv.AppendFile("weeklyOptions_"+expiration+"_cc.csv", output, false)
-
-	row++
+	row += strings.Count(output, "\n")
 }
