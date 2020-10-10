@@ -176,10 +176,17 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 		c = fmt.Sprintf("$%7.02f", security.Puts[put].Ask)
 	case "bidStrikeRatio":
 		h = fmt.Sprintf("%8s", "B/S ratio")
-		c = fmt.Sprintf("%8.1f%%", security.Puts[put].BidStrikeRatio)
+		bidCol := colName(cols, "bid")
+		strikeCol := colName(cols, "strike")
+		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, strikeCol, row)
+		// c = fmt.Sprintf("%8.1f%%", security.Puts[put].BidStrikeRatio)
 	case "safetySpread":
 		h = fmt.Sprintf("%8s", "Safety")
-		c = fmt.Sprintf("%7.1f%%", security.Puts[put].SafetySpread)
+		priceCol := colName(cols, "price")
+		bidCol := colName(cols, "bid")
+		strikeCol := colName(cols, "strike")
+		c = fmt.Sprintf("=(%s%d-(%s%d-%s%d))/%s%d", priceCol, row, strikeCol, row, bidCol, row, priceCol, row)
+		// c = fmt.Sprintf("%7.1f%%", security.Puts[put].SafetySpread)
 	case "callSpread":
 		h = fmt.Sprintf("%8s", "CallSprd")
 		c = fmt.Sprintf("%7.1f%%", security.Puts[put].CallSpread)
