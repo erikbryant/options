@@ -98,8 +98,17 @@ func Security(ticker string) (sec.Security, error) {
 		security.Puts[put].PriceBasisDelta = security.Price - (security.Puts[put].Strike - security.Puts[put].Bid)
 		security.Puts[put].LastTradeDays = int64(time.Now().Sub(security.Puts[put].LastTradeDate).Hours() / 24)
 		security.Puts[put].BidStrikeRatio = security.Puts[put].Bid / security.Puts[put].Strike * 100
+		security.Puts[put].BidPriceRatio = security.Puts[put].Bid / security.Price * 100
 		security.Puts[put].SafetySpread = (security.Price - (security.Puts[put].Strike - security.Puts[put].Bid)) / security.Price * 100
 		security.Puts[put].CallSpread = security.CallSpread(security.Puts[put].Expiration)
+	}
+	for call := range security.Calls {
+		security.Calls[call].PriceBasisDelta = security.Price - (security.Calls[call].Strike - security.Calls[call].Bid)
+		security.Calls[call].LastTradeDays = int64(time.Now().Sub(security.Calls[call].LastTradeDate).Hours() / 24)
+		security.Calls[call].BidStrikeRatio = security.Calls[call].Bid / security.Calls[call].Strike * 100
+		security.Calls[call].BidPriceRatio = security.Calls[call].Bid / security.Price * 100
+		security.Calls[call].SafetySpread = (security.Price - (security.Calls[call].Strike - security.Calls[call].Bid)) / security.Price * 100
+		security.Calls[call].CallSpread = security.CallSpread(security.Calls[call].Expiration)
 	}
 
 	return security, nil

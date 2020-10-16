@@ -190,19 +190,60 @@ func main() {
 				continue
 			}
 
-			// If the put is in the money, only consider it if '-itm=true'.
+			// If it is in the money, only consider it if '-itm=true'.
 			if security.Puts[put].Strike > security.Price && !*itm {
 				continue
 			}
 
 			// Does this option cost more than current market share price?
 			if security.Puts[put].PriceBasisDelta <= 0 {
-				// Sometimes in-the-money strikes have such high bids that
-				// they result in a cost basis below the current price.
 				continue
 			}
 
 			security.PrintPut(put, header, *expiration)
+
+			header = false
+		}
+	}
+
+	header = true
+	for _, security := range securities {
+		for call := range security.Calls {
+			if security.Calls[call].Strike > *maxStrike {
+				continue
+			}
+
+			if *expiration < security.Calls[call].Expiration {
+				continue
+			}
+
+			if security.Calls[call].Bid <= 0 {
+				continue
+			}
+
+			if security.Calls[call].BidPriceRatio < *minYield {
+				continue
+			}
+
+			if security.Calls[call].SafetySpread < *minSafety {
+				continue
+			}
+
+			if security.Calls[call].CallSpread < *minCall {
+				continue
+			}
+
+			// If it is in the money, only consider it if '-itm=true'.
+			if security.Calls[call].Strike < security.Price && !*itm {
+				continue
+			}
+
+			// Does this option cost more than current market share price?
+			if security.Calls[call].PriceBasisDelta <= 0 {
+				continue
+			}
+
+			security.PrintCall(call, header, *expiration)
 
 			header = false
 		}

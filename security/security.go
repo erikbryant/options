@@ -23,6 +23,7 @@ type Contract struct {
 	PriceBasisDelta float64 // Share price minus cost basis
 	LastTradeDays   int64   // Age of last trade in days
 	BidStrikeRatio  float64 // bid / strike
+	BidPriceRatio   float64 // bid / strike
 	SafetySpread    float64 // distance between share price and cost basis
 	CallSpread      float64 // how many strikes out do calls still have bids
 	// Formatted output values
@@ -51,9 +52,13 @@ type Security struct {
 }
 
 var (
-	colsStdout = []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize"}
-	colsEb     = []string{"ticker", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"}
-	colsCc     = []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "exposure"}
+	pColsStdout = []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize"}
+	pColsEb     = []string{"ticker", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"}
+	pColsCc     = []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "outlay"}
+
+	cColsStdout = []string{"ticker", "expiration", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize"}
+	cColsEb     = []string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"}
+	cColsCc     = []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "outlay"}
 )
 
 // HasOptions returns whether the security has options.
@@ -181,6 +186,18 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 		strikeCol := colName(cols, "strike")
 		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, strikeCol, row)
 		// c = fmt.Sprintf("%8.1f%%", security.Puts[put].BidStrikeRatio)
+	case "bidPriceRatio":
+		h = fmt.Sprintf("%8s", "B/P ratio")
+		bidCol := colName(cols, "bid")
+		priceCol := colName(cols, "price")
+		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, priceCol, row)
+		// c = fmt.Sprintf("%8.1f%%", security.Puts[put].BidPriceRatio)
+	case "ifCalled":
+		h = fmt.Sprintf("%8s", "If Called")
+		bidCol := colName(cols, "bid")
+		priceCol := colName(cols, "price")
+		strikeCol := colName(cols, "strike")
+		c = fmt.Sprintf("=(%s%d+%s%d-%s%d)/%s%d", bidCol, row, strikeCol, row, priceCol, row, priceCol, row)
 	case "safetySpread":
 		h = fmt.Sprintf("%8s", "Safety")
 		priceCol := colName(cols, "price")
@@ -227,6 +244,12 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 		lotSizeCol := colName(cols, "lotSize")
 		lotsCol := colName(cols, "lots")
 		c = fmt.Sprintf("=%s%d*%s%d*%s%d", strikeCol, row, lotSizeCol, row, lotsCol, row)
+	case "outlay":
+		h = fmt.Sprintf("%8s", "Outlay")
+		priceCol := colName(cols, "price")
+		lotSizeCol := colName(cols, "lotSize")
+		lotsCol := colName(cols, "lots")
+		c = fmt.Sprintf("=%s%d*%s%d*%s%d", priceCol, row, lotSizeCol, row, lotsCol, row)
 	case "premium":
 		h = fmt.Sprintf("%8s", "Premium")
 		bidCol := colName(cols, "bid")
@@ -248,8 +271,126 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 	return h, c
 }
 
+// callCell returns a header and cell string formatted for printing.
+func (security *Security) callCell(cols []string, col string, call int, expiration string) (string, string) {
+	h := fmt.Sprintf("col not found: %s", col)
+	c := fmt.Sprintf("col not found: %s", col)
+
+	switch col {
+	case "ticker":
+		h = fmt.Sprintf("%8s", "Ticker")
+		c = fmt.Sprintf("%8s", security.Ticker)
+	case "expiration":
+		h = fmt.Sprintf("%10s", "Expiration")
+		c = fmt.Sprintf("%10s", security.Calls[call].Expiration)
+	case "price":
+		h = fmt.Sprintf("%8s", "Price")
+		c = fmt.Sprintf("$%7.02f", security.Price)
+	case "strike":
+		h = fmt.Sprintf("%8s", "Strike")
+		c = fmt.Sprintf("$%7.02f", security.Calls[call].Strike)
+	case "last":
+		h = fmt.Sprintf("%8s", "Last")
+		c = fmt.Sprintf("$%7.02f", security.Calls[call].Last)
+	case "bid":
+		h = fmt.Sprintf("%8s", "Bid")
+		c = fmt.Sprintf("$%7.02f", security.Calls[call].Bid)
+	case "ask":
+		h = fmt.Sprintf("%8s", "Ask")
+		c = fmt.Sprintf("$%7.02f", security.Calls[call].Ask)
+	case "bidStrikeRatio":
+		h = fmt.Sprintf("%8s", "B/S ratio")
+		bidCol := colName(cols, "bid")
+		strikeCol := colName(cols, "strike")
+		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, strikeCol, row)
+		// c = fmt.Sprintf("%8.1f%%", security.Calls[call].BidStrikeRatio)
+	case "bidPriceRatio":
+		h = fmt.Sprintf("%8s", "B/P ratio")
+		bidCol := colName(cols, "bid")
+		priceCol := colName(cols, "price")
+		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, priceCol, row)
+		// c = fmt.Sprintf("%8.1f%%", security.Calls[call].BidPriceRatio)
+	case "ifCalled":
+		h = fmt.Sprintf("%8s", "If Called")
+		bidCol := colName(cols, "bid")
+		priceCol := colName(cols, "price")
+		strikeCol := colName(cols, "strike")
+		c = fmt.Sprintf("=(%s%d+%s%d-%s%d)/%s%d", bidCol, row, strikeCol, row, priceCol, row, priceCol, row)
+	case "safetySpread":
+		h = fmt.Sprintf("%8s", "Safety")
+		priceCol := colName(cols, "price")
+		bidCol := colName(cols, "bid")
+		strikeCol := colName(cols, "strike")
+		c = fmt.Sprintf("=(%s%d-(%s%d-%s%d))/%s%d", priceCol, row, strikeCol, row, bidCol, row, priceCol, row)
+		// c = fmt.Sprintf("%7.1f%%", security.Calls[call].SafetySpread)
+	case "callSpread":
+		h = fmt.Sprintf("%8s", "CallSprd")
+		c = fmt.Sprintf("%7.1f%%", security.Calls[call].CallSpread)
+	case "age":
+		h = fmt.Sprintf("%8s", "Age")
+		// TODO: If it is the weekend, then make the threshold for
+		// printing higher (i.e., count these as business days, not
+		// calendar days).
+		var lastTrade string
+		if security.Calls[call].LastTradeDays >= 2 {
+			lastTrade = fmt.Sprintf("%dd", security.Calls[call].LastTradeDays)
+		}
+		c = fmt.Sprintf("%8s", lastTrade)
+	case "earnings":
+		h = fmt.Sprintf("%8s", "Earnings")
+		earnings := ""
+		if security.EarningsDate != "" && security.EarningsDate <= expiration {
+			earnings = "E"
+		}
+		c = fmt.Sprintf("%8s", earnings)
+	case "itm":
+		h = fmt.Sprintf("%8s", "In the $")
+		inTheMoney := ""
+		if security.Calls[call].Strike <= security.Price {
+			inTheMoney = "ITM"
+		}
+		c = fmt.Sprintf("%8s", inTheMoney)
+	case "lotSize":
+		h = fmt.Sprintf("%8s", "Lot Size")
+		c = fmt.Sprintf("%8d", security.Calls[call].Size)
+	case "lots":
+		h = fmt.Sprintf("%8s", "Lots")
+		c = fmt.Sprintf("%8d", 0)
+	case "exposure":
+		h = fmt.Sprintf("%8s", "Exposure")
+		strikeCol := colName(cols, "strike")
+		lotSizeCol := colName(cols, "lotSize")
+		lotsCol := colName(cols, "lots")
+		c = fmt.Sprintf("=%s%d*%s%d*%s%d", strikeCol, row, lotSizeCol, row, lotsCol, row)
+	case "outlay":
+		h = fmt.Sprintf("%8s", "Outlay")
+		priceCol := colName(cols, "price")
+		lotSizeCol := colName(cols, "lotSize")
+		lotsCol := colName(cols, "lots")
+		c = fmt.Sprintf("=%s%d*%s%d*%s%d", priceCol, row, lotSizeCol, row, lotsCol, row)
+	case "premium":
+		h = fmt.Sprintf("%8s", "Premium")
+		bidCol := colName(cols, "bid")
+		lotSizeCol := colName(cols, "lotSize")
+		lotsCol := colName(cols, "lots")
+		c = fmt.Sprintf("=%s%d*%s%d*%s%d", bidCol, row, lotSizeCol, row, lotsCol, row)
+	case "notes":
+		h = fmt.Sprintf("%8s", "Notes")
+		c = fmt.Sprintf("%8s", "")
+	case "otmItm":
+		h = fmt.Sprintf("%8s", "OTM/ITM")
+		if security.Calls[call].Strike <= security.Price {
+			c = fmt.Sprintf("%8s", "ITM")
+		} else {
+			c = fmt.Sprintf("%8s", "OTM")
+		}
+	}
+
+	return h, c
+}
+
 // formatHeader formats the header for the table.
-func (security *Security) formatHeader(cols []string, put int, csv bool, expiration string) string {
+func (security *Security) formatHeader(cols []string, csv bool) string {
 	var separator string
 	var output string
 
@@ -265,6 +406,10 @@ func (security *Security) formatHeader(cols []string, put int, csv bool, expirat
 		case "premium":
 			pname := colName(cols, "premium")
 			ename := colName(cols, "exposure")
+			if ename[0] == '!' {
+				// For calls, the column name is 'outlay'.
+				ename = colName(cols, "outlay")
+			}
 			output += fmt.Sprintf("=%s2/%s2", pname, ename)
 		}
 		output += separator
@@ -275,10 +420,13 @@ func (security *Security) formatHeader(cols []string, put int, csv bool, expirat
 	for _, col := range cols {
 		switch col {
 		case "premium":
-			name := colName(cols, "premium")
+			name := colName(cols, col)
 			output += fmt.Sprintf("=sum(%s4:%s%d)", name, name, 9999)
 		case "exposure":
-			name := colName(cols, "exposure")
+			name := colName(cols, col)
+			output += fmt.Sprintf("=sum(%s4:%s%d)", name, name, 9999)
+		case "outlay":
+			name := colName(cols, col)
 			output += fmt.Sprintf("=sum(%s4:%s%d)", name, name, 9999)
 		}
 		output += separator
@@ -287,7 +435,7 @@ func (security *Security) formatHeader(cols []string, put int, csv bool, expirat
 
 	// The column names.
 	for _, col := range cols {
-		h, _ := security.cell(cols, col, put, expiration)
+		h, _ := security.cell(cols, col, 0, "")
 		output += h
 		output += separator
 	}
@@ -317,35 +465,92 @@ func (security *Security) formatPut(cols []string, put int, csv bool, expiration
 	return output
 }
 
+// formatCall formats the call data for a single ticker.
+func (security *Security) formatCall(cols []string, call int, csv bool, expiration string) string {
+	var separator string
+	var output string
+
+	if csv {
+		separator = ","
+	} else {
+		separator = "  "
+	}
+
+	for _, col := range cols {
+		_, c := security.callCell(cols, col, call, expiration)
+		output += c
+		output += separator
+	}
+	output += "\n"
+
+	return output
+}
+
 var row = 1
 
 // PrintPut prints the put data for a single ticker to stdout and the personalized CSV files.
 func (security *Security) PrintPut(put int, header bool, expiration string) {
 	var output string
 
-	ebFile := "weeklyOptions_" + expiration + "_eb.csv"
-	ccFile := "weeklyOptions_" + expiration + "_cc.csv"
+	ebFile := "weeklyOptions_" + expiration + "_puts_eb.csv"
+	ccFile := "weeklyOptions_" + expiration + "_puts_cc.csv"
 
 	if header {
-		output = security.formatHeader(colsStdout, put, false, expiration)
+		row = 1
+
+		output = security.formatHeader(pColsStdout, false)
 		fmt.Printf("%s", output)
 
-		output = security.formatHeader(colsEb, put, true, expiration)
+		output = security.formatHeader(pColsEb, true)
 		csv.AppendFile(ebFile, output, true)
 
-		output = security.formatHeader(colsCc, put, true, expiration)
+		output = security.formatHeader(pColsCc, true)
 		csv.AppendFile(ccFile, output, true)
 
 		row += strings.Count(output, "\n")
 	}
 
-	output = security.formatPut(colsStdout, put, false, expiration)
+	output = security.formatPut(pColsStdout, put, false, expiration)
 	fmt.Printf("%s", output)
 
-	output = security.formatPut(colsEb, put, true, expiration)
+	output = security.formatPut(pColsEb, put, true, expiration)
 	csv.AppendFile(ebFile, output, false)
 
-	output = security.formatPut(colsCc, put, true, expiration)
+	output = security.formatPut(pColsCc, put, true, expiration)
+	csv.AppendFile(ccFile, output, false)
+
+	row += strings.Count(output, "\n")
+}
+
+// PrintCall prints the call data for a single ticker to stdout and the personalized CSV files.
+func (security *Security) PrintCall(call int, header bool, expiration string) {
+	var output string
+
+	ebFile := "weeklyOptions_" + expiration + "_calls_eb.csv"
+	ccFile := "weeklyOptions_" + expiration + "_calls_cc.csv"
+
+	if header {
+		row = 1
+
+		output = security.formatHeader(cColsStdout, false)
+		fmt.Printf("%s", output)
+
+		output = security.formatHeader(cColsEb, true)
+		csv.AppendFile(ebFile, output, true)
+
+		output = security.formatHeader(cColsCc, true)
+		csv.AppendFile(ccFile, output, true)
+
+		row += strings.Count(output, "\n")
+	}
+
+	output = security.formatCall(cColsStdout, call, false, expiration)
+	fmt.Printf("%s", output)
+
+	output = security.formatCall(cColsEb, call, true, expiration)
+	csv.AppendFile(ebFile, output, false)
+
+	output = security.formatCall(cColsCc, call, true, expiration)
 	csv.AppendFile(ccFile, output, false)
 
 	row += strings.Count(output, "\n")
