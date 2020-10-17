@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"testing"
@@ -78,7 +78,7 @@ func TestCombine(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		answer := combine(testCase.list1, testCase.list2, testCase.skip)
+		answer := Combine(testCase.list1, testCase.list2, testCase.skip)
 		if !equal(answer, testCase.expected) {
 			t.Errorf("For %v, %v, %v expected %v, got %v", testCase.list1, testCase.list2, testCase.skip, testCase.expected, answer)
 		}

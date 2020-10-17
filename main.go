@@ -8,9 +8,9 @@ import (
 	"github.com/erikbryant/options/options"
 	"github.com/erikbryant/options/tiingo"
 	"github.com/erikbryant/options/tradeking"
+	"github.com/erikbryant/options/utils"
 	"os"
 	"runtime/pprof"
-	"sort"
 	"strings"
 	"time"
 )
@@ -71,36 +71,6 @@ var skipList = []string{
 	"YINN",
 }
 
-// combine merges two lists into one, removes any elements that are in skip, and returns the sorted remainder.
-func combine(list1, list2 []string, skip []string) []string {
-	m := make(map[string]int)
-
-	for _, val := range list1 {
-		m[val] = 1
-	}
-
-	for _, val := range list2 {
-		m[val] = 1
-	}
-
-	for _, val := range skip {
-		delete(m, val)
-	}
-
-	var result []string
-
-	for key := range m {
-		if key == "" {
-			continue
-		}
-		result = append(result, key)
-	}
-
-	sort.Strings(result)
-
-	return result
-}
-
 func main() {
 	flag.Parse()
 
@@ -154,7 +124,7 @@ func main() {
 	}
 
 	// Get the list of tickers to scan.
-	t = combine(t, strings.Split(*tickers, ","), skip)
+	t = utils.Combine(t, strings.Split(*tickers, ","), skip)
 
 	// Load underlying data for all tickers.
 	securities, err := options.Securities(t)
