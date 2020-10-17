@@ -2,12 +2,11 @@ package options
 
 import (
 	"fmt"
-	"github.com/erikbryant/options/csv"
+	// "github.com/erikbryant/options/csv"
 	"github.com/erikbryant/options/eoddata"
+	"github.com/erikbryant/options/finnhub"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/tradeking"
-	// "github.com/erikbryant/options/yahoo"
-	"github.com/erikbryant/options/finnhub"
 	"os"
 	"strings"
 	"time"
@@ -114,8 +113,8 @@ func Security(ticker string) (sec.Security, error) {
 	return security, nil
 }
 
-// FindSecuritiesWithOptions re-scans all known securities to see which have options.
-func FindSecuritiesWithOptions(useFile, optionsFile string) ([]string, error) {
+// FindSecuritiesWithOptions re-scans all known securities to see which have options and writes them to 'useFile.options.csv'.
+func FindSecuritiesWithOptions(useFile string) ([]string, error) {
 	securities, err := eoddata.USEquities(useFile)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading US equity list %s", err)
@@ -133,24 +132,8 @@ func FindSecuritiesWithOptions(useFile, optionsFile string) ([]string, error) {
 		return nil, err
 	}
 
-	optionable := make(map[string]string)
-	if optionsFile != "" {
-		knownOptions, err := csv.GetFile(optionsFile)
-		if err != nil {
-			return nil, err
-		}
-		for _, o := range knownOptions {
-			optionable[o] = o
-		}
-	}
-
 	options := []string{}
 	for _, key := range securities {
-		// If we already know it has options, skip it
-		if optionable[key] != "" {
-			continue
-		}
-
 		var security sec.Security
 		security.Ticker = key
 		security, err = tradeking.GetOptions(security)
@@ -160,6 +143,7 @@ func FindSecuritiesWithOptions(useFile, optionsFile string) ([]string, error) {
 		}
 
 		if !security.HasOptions() {
+			fmt.Println("Security does not have options", security.Ticker)
 			continue
 		}
 

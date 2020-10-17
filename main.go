@@ -118,7 +118,7 @@ func main() {
 	finnhub.Init(*passPhrase)
 
 	if *regenerate {
-		_, err := options.FindSecuritiesWithOptions(*useFile, *optionsFile)
+		_, err := options.FindSecuritiesWithOptions(*useFile)
 		if err != nil {
 			fmt.Println(err)
 		}
