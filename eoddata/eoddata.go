@@ -4,6 +4,7 @@ import (
 	"github.com/erikbryant/options/csv"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 // USEquities returns a sorted list of all known US equity symbols.
@@ -18,17 +19,21 @@ func USEquities(useFile string) ([]string, error) {
 	for _, equity := range equities {
 		cells := strings.Split(equity, ",")
 
-		// Skip non-symbols
-		if strings.ContainsAny(cells[0], "-.") {
+		ticker := cells[0]
+
+		// Skip non-standard symbols.
+		skip := false
+		for _, char := range cells[0] {
+			if !unicode.IsLetter(char) {
+				skip = true
+				break
+			}
+		}
+		if skip {
 			continue
 		}
 
-		// This returns a 500 and does not appear to have options, anyway.
-		if cells[0] == "MID" {
-			continue
-		}
-
-		securities = append(securities, cells[0])
+		securities = append(securities, ticker)
 	}
 
 	sort.Strings(securities)
