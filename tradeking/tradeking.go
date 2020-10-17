@@ -294,8 +294,7 @@ func GetOptions(security sec.Security) (sec.Security, error) {
 		return security, fmt.Errorf("Error parsing market options %s", err)
 	}
 
-	// Only update the cache if the options fields were populated.
-	if cacheStale && security.HasOptions() {
+	if cacheStale {
 		cache.Update(today+url, response)
 	}
 
