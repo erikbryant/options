@@ -2,11 +2,12 @@ package options
 
 import (
 	"fmt"
-	// "github.com/erikbryant/options/csv"
+	"github.com/erikbryant/options/cboe"
 	"github.com/erikbryant/options/eoddata"
 	"github.com/erikbryant/options/finnhub"
 	sec "github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/tradeking"
+	"github.com/erikbryant/options/utils"
 	"os"
 	"strings"
 	"time"
@@ -119,6 +120,13 @@ func FindSecuritiesWithOptions(useFile string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error loading US equity list %s", err)
 	}
+
+	securities2, err := cboe.WeeklyOptions()
+	if err != nil {
+		return nil, fmt.Errorf("Error loading CBOE weekly options list %s", err)
+	}
+
+	securities = utils.Combine(securities, securities2, []string{})
 
 	outFile := strings.Replace(useFile, ".csv", ".options.csv", 1)
 	f, err := os.Create(outFile)
