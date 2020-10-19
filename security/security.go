@@ -154,7 +154,7 @@ func (security *Security) CallSpread(expiration string) float64 {
 }
 
 // cell returns a header and cell string formatted for printing.
-func (security *Security) cell(cols []string, col string, put int, expiration string) (string, string) {
+func (security *Security) cell(cols []string, col string, contract Contract, expiration string) (string, string) {
 	h := fmt.Sprintf("col not found: %s", col)
 	c := fmt.Sprintf("col not found: %s", col)
 
@@ -164,34 +164,34 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 		c = fmt.Sprintf("%8s", security.Ticker)
 	case "expiration":
 		h = fmt.Sprintf("%10s", "Expiration")
-		c = fmt.Sprintf("%10s", security.Puts[put].Expiration)
+		c = fmt.Sprintf("%10s", contract.Expiration)
 	case "price":
 		h = fmt.Sprintf("%8s", "Price")
 		c = fmt.Sprintf("$%7.02f", security.Price)
 	case "strike":
 		h = fmt.Sprintf("%8s", "Strike")
-		c = fmt.Sprintf("$%7.02f", security.Puts[put].Strike)
+		c = fmt.Sprintf("$%7.02f", contract.Strike)
 	case "last":
 		h = fmt.Sprintf("%8s", "Last")
-		c = fmt.Sprintf("$%7.02f", security.Puts[put].Last)
+		c = fmt.Sprintf("$%7.02f", contract.Last)
 	case "bid":
 		h = fmt.Sprintf("%8s", "Bid")
-		c = fmt.Sprintf("$%7.02f", security.Puts[put].Bid)
+		c = fmt.Sprintf("$%7.02f", contract.Bid)
 	case "ask":
 		h = fmt.Sprintf("%8s", "Ask")
-		c = fmt.Sprintf("$%7.02f", security.Puts[put].Ask)
+		c = fmt.Sprintf("$%7.02f", contract.Ask)
 	case "bidStrikeRatio":
 		h = fmt.Sprintf("%8s", "B/S ratio")
 		bidCol := colName(cols, "bid")
 		strikeCol := colName(cols, "strike")
 		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, strikeCol, row)
-		// c = fmt.Sprintf("%8.1f%%", security.Puts[put].BidStrikeRatio)
+		// c = fmt.Sprintf("%8.1f%%", contract.BidStrikeRatio)
 	case "bidPriceRatio":
 		h = fmt.Sprintf("%8s", "B/P ratio")
 		bidCol := colName(cols, "bid")
 		priceCol := colName(cols, "price")
 		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, priceCol, row)
-		// c = fmt.Sprintf("%8.1f%%", security.Puts[put].BidPriceRatio)
+		// c = fmt.Sprintf("%8.1f%%", contract.BidPriceRatio)
 	case "ifCalled":
 		h = fmt.Sprintf("%8s", "If Called")
 		bidCol := colName(cols, "bid")
@@ -204,18 +204,18 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 		bidCol := colName(cols, "bid")
 		strikeCol := colName(cols, "strike")
 		c = fmt.Sprintf("=(%s%d-(%s%d-%s%d))/%s%d", priceCol, row, strikeCol, row, bidCol, row, priceCol, row)
-		// c = fmt.Sprintf("%7.1f%%", security.Puts[put].SafetySpread)
+		// c = fmt.Sprintf("%7.1f%%", contract.SafetySpread)
 	case "callSpread":
 		h = fmt.Sprintf("%8s", "CallSprd")
-		c = fmt.Sprintf("%7.1f%%", security.Puts[put].CallSpread)
+		c = fmt.Sprintf("%7.1f%%", contract.CallSpread)
 	case "age":
 		h = fmt.Sprintf("%8s", "Age")
 		// TODO: If it is the weekend, then make the threshold for
 		// printing higher (i.e., count these as business days, not
 		// calendar days).
 		var lastTrade string
-		if security.Puts[put].LastTradeDays >= 2 {
-			lastTrade = fmt.Sprintf("%dd", security.Puts[put].LastTradeDays)
+		if contract.LastTradeDays >= 2 {
+			lastTrade = fmt.Sprintf("%dd", contract.LastTradeDays)
 		}
 		c = fmt.Sprintf("%8s", lastTrade)
 	case "earnings":
@@ -228,13 +228,13 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 	case "itm":
 		h = fmt.Sprintf("%8s", "In the $")
 		inTheMoney := ""
-		if security.Puts[put].Strike >= security.Price {
+		if contract.Strike >= security.Price {
 			inTheMoney = "ITM"
 		}
 		c = fmt.Sprintf("%8s", inTheMoney)
 	case "lotSize":
 		h = fmt.Sprintf("%8s", "Lot Size")
-		c = fmt.Sprintf("%8d", security.Puts[put].Size)
+		c = fmt.Sprintf("%8d", contract.Size)
 	case "lots":
 		h = fmt.Sprintf("%8s", "Lots")
 		c = fmt.Sprintf("%8d", 0)
@@ -261,7 +261,7 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 		c = fmt.Sprintf("%8s", "")
 	case "otmItm":
 		h = fmt.Sprintf("%8s", "OTM/ITM")
-		if security.Puts[put].Strike >= security.Price {
+		if contract.Strike >= security.Price {
 			c = fmt.Sprintf("%8s", "ITM")
 		} else {
 			c = fmt.Sprintf("%8s", "OTM")
@@ -272,7 +272,7 @@ func (security *Security) cell(cols []string, col string, put int, expiration st
 }
 
 // callCell returns a header and cell string formatted for printing.
-func (security *Security) callCell(cols []string, col string, call int, expiration string) (string, string) {
+func (security *Security) callCell(cols []string, col string, contract Contract, expiration string) (string, string) {
 	h := fmt.Sprintf("col not found: %s", col)
 	c := fmt.Sprintf("col not found: %s", col)
 
@@ -282,34 +282,34 @@ func (security *Security) callCell(cols []string, col string, call int, expirati
 		c = fmt.Sprintf("%8s", security.Ticker)
 	case "expiration":
 		h = fmt.Sprintf("%10s", "Expiration")
-		c = fmt.Sprintf("%10s", security.Calls[call].Expiration)
+		c = fmt.Sprintf("%10s", contract.Expiration)
 	case "price":
 		h = fmt.Sprintf("%8s", "Price")
 		c = fmt.Sprintf("$%7.02f", security.Price)
 	case "strike":
 		h = fmt.Sprintf("%8s", "Strike")
-		c = fmt.Sprintf("$%7.02f", security.Calls[call].Strike)
+		c = fmt.Sprintf("$%7.02f", contract.Strike)
 	case "last":
 		h = fmt.Sprintf("%8s", "Last")
-		c = fmt.Sprintf("$%7.02f", security.Calls[call].Last)
+		c = fmt.Sprintf("$%7.02f", contract.Last)
 	case "bid":
 		h = fmt.Sprintf("%8s", "Bid")
-		c = fmt.Sprintf("$%7.02f", security.Calls[call].Bid)
+		c = fmt.Sprintf("$%7.02f", contract.Bid)
 	case "ask":
 		h = fmt.Sprintf("%8s", "Ask")
-		c = fmt.Sprintf("$%7.02f", security.Calls[call].Ask)
+		c = fmt.Sprintf("$%7.02f", contract.Ask)
 	case "bidStrikeRatio":
 		h = fmt.Sprintf("%8s", "B/S ratio")
 		bidCol := colName(cols, "bid")
 		strikeCol := colName(cols, "strike")
 		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, strikeCol, row)
-		// c = fmt.Sprintf("%8.1f%%", security.Calls[call].BidStrikeRatio)
+		// c = fmt.Sprintf("%8.1f%%", contract.BidStrikeRatio)
 	case "bidPriceRatio":
 		h = fmt.Sprintf("%8s", "B/P ratio")
 		bidCol := colName(cols, "bid")
 		priceCol := colName(cols, "price")
 		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, priceCol, row)
-		// c = fmt.Sprintf("%8.1f%%", security.Calls[call].BidPriceRatio)
+		// c = fmt.Sprintf("%8.1f%%", contract.BidPriceRatio)
 	case "ifCalled":
 		h = fmt.Sprintf("%8s", "If Called")
 		bidCol := colName(cols, "bid")
@@ -322,18 +322,18 @@ func (security *Security) callCell(cols []string, col string, call int, expirati
 		bidCol := colName(cols, "bid")
 		strikeCol := colName(cols, "strike")
 		c = fmt.Sprintf("=(%s%d-(%s%d-%s%d))/%s%d", priceCol, row, strikeCol, row, bidCol, row, priceCol, row)
-		// c = fmt.Sprintf("%7.1f%%", security.Calls[call].SafetySpread)
+		// c = fmt.Sprintf("%7.1f%%", contract.SafetySpread)
 	case "callSpread":
 		h = fmt.Sprintf("%8s", "CallSprd")
-		c = fmt.Sprintf("%7.1f%%", security.Calls[call].CallSpread)
+		c = fmt.Sprintf("%7.1f%%", contract.CallSpread)
 	case "age":
 		h = fmt.Sprintf("%8s", "Age")
 		// TODO: If it is the weekend, then make the threshold for
 		// printing higher (i.e., count these as business days, not
 		// calendar days).
 		var lastTrade string
-		if security.Calls[call].LastTradeDays >= 2 {
-			lastTrade = fmt.Sprintf("%dd", security.Calls[call].LastTradeDays)
+		if contract.LastTradeDays >= 2 {
+			lastTrade = fmt.Sprintf("%dd", contract.LastTradeDays)
 		}
 		c = fmt.Sprintf("%8s", lastTrade)
 	case "earnings":
@@ -346,13 +346,13 @@ func (security *Security) callCell(cols []string, col string, call int, expirati
 	case "itm":
 		h = fmt.Sprintf("%8s", "In the $")
 		inTheMoney := ""
-		if security.Calls[call].Strike <= security.Price {
+		if contract.Strike <= security.Price {
 			inTheMoney = "ITM"
 		}
 		c = fmt.Sprintf("%8s", inTheMoney)
 	case "lotSize":
 		h = fmt.Sprintf("%8s", "Lot Size")
-		c = fmt.Sprintf("%8d", security.Calls[call].Size)
+		c = fmt.Sprintf("%8d", contract.Size)
 	case "lots":
 		h = fmt.Sprintf("%8s", "Lots")
 		c = fmt.Sprintf("%8d", 0)
@@ -379,7 +379,7 @@ func (security *Security) callCell(cols []string, col string, call int, expirati
 		c = fmt.Sprintf("%8s", "")
 	case "otmItm":
 		h = fmt.Sprintf("%8s", "OTM/ITM")
-		if security.Calls[call].Strike <= security.Price {
+		if contract.Strike <= security.Price {
 			c = fmt.Sprintf("%8s", "ITM")
 		} else {
 			c = fmt.Sprintf("%8s", "OTM")
@@ -435,7 +435,7 @@ func (security *Security) formatHeader(cols []string, csv bool) string {
 
 	// The column names.
 	for _, col := range cols {
-		h, _ := security.cell(cols, col, 0, "")
+		h, _ := security.cell(cols, col, security.Puts[0], "")
 		output += h
 		output += separator
 	}
@@ -456,7 +456,7 @@ func (security *Security) formatPut(cols []string, put int, csv bool, expiration
 	}
 
 	for _, col := range cols {
-		_, c := security.cell(cols, col, put, expiration)
+		_, c := security.cell(cols, col, security.Puts[put], expiration)
 		output += c
 		output += separator
 	}
@@ -477,7 +477,7 @@ func (security *Security) formatCall(cols []string, call int, csv bool, expirati
 	}
 
 	for _, col := range cols {
-		_, c := security.callCell(cols, col, call, expiration)
+		_, c := security.callCell(cols, col, security.Calls[call], expiration)
 		output += c
 		output += separator
 	}
