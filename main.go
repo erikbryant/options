@@ -60,6 +60,7 @@ var skipList = []string{
 	"SPXU",
 	"SQQQ",
 	"TECS",
+	"TLRY",
 	"TNA",
 	"TQQQ",
 	"TZA",
