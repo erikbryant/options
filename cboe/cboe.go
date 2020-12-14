@@ -2,17 +2,17 @@ package cboe
 
 import (
 	"fmt"
+	"github.com/erikbryant/options/csv"
 	"github.com/erikbryant/web"
-	"github.com/extrame/xls"
 	"io"
 	"os"
 	"sort"
-	"unicode"
+	"strings"
 )
 
 // getData downloads the CBOE weekly options data and saves it to a file.
 func getData(file string) error {
-	url := "https://www.cboe.com/publish/weelkysmf/weeklysmf.xls"
+	url := "https://www.cboe.com/us/options/symboldir/weeklys_options/?download=csv"
 	headers := map[string]string{}
 
 	resp, err := web.Request2(url, headers)
@@ -38,39 +38,23 @@ func getData(file string) error {
 
 // WeeklyOptions pulls the list of options with weekly (or more frequent) expirations from the CBOE.
 func WeeklyOptions() ([]string, error) {
-	file := "web-request-cache/weeklysmf.xls"
+	file := "web-request-cache/cboesymboldirweeklys.csv"
 
 	err := getData(file)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to download CBOE data %v", err)
 	}
 
-	w, err := xls.Open(file, "utf-8")
+	records, err := csv.GetFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to open CBOE data %v", err)
 	}
 
 	var tickers []string
 
-	sheet := w.GetSheet(0)
-	if sheet == nil {
-		return nil, fmt.Errorf("Sheet zero not found in CBOE data")
-	}
-
-	for i := 0; i <= (int(sheet.MaxRow)); i++ {
-		col1 := sheet.Row(i).Col(0)
-		var ticker string
-		for _, char := range col1 {
-			if unicode.IsLetter(char) {
-				ticker += string(char)
-			}
-		}
-		if ticker == "Ticker" {
-			continue
-		}
-		if len(ticker) == 0 {
-			continue
-		}
+	for _, record := range records {
+		fields := strings.Split(record, "\",\"")
+		ticker := strings.Trim(fields[1], "\"")
 		tickers = append(tickers, ticker)
 	}
 
