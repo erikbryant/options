@@ -488,7 +488,7 @@ func (security *Security) formatCall(cols []string, call int, csv bool, expirati
 
 var row = 1
 
-// PrintPut prints the put data for a single ticker to stdout and the personalized CSV files.
+// PrintPut prints the put data for a single ticker to the personalized CSV files.
 func (security *Security) PrintPut(put int, header bool, expiration string) {
 	var output string
 
@@ -497,9 +497,6 @@ func (security *Security) PrintPut(put int, header bool, expiration string) {
 
 	if header {
 		row = 1
-
-		output = security.formatHeader(pColsStdout, false)
-		fmt.Printf("%s", output)
 
 		output = security.formatHeader(pColsEb, true)
 		csv.AppendFile(ebFile, output, true)
@@ -510,9 +507,6 @@ func (security *Security) PrintPut(put int, header bool, expiration string) {
 		row += strings.Count(output, "\n")
 	}
 
-	output = security.formatPut(pColsStdout, put, false, expiration)
-	fmt.Printf("%s", output)
-
 	output = security.formatPut(pColsEb, put, true, expiration)
 	csv.AppendFile(ebFile, output, false)
 
@@ -522,7 +516,7 @@ func (security *Security) PrintPut(put int, header bool, expiration string) {
 	row += strings.Count(output, "\n")
 }
 
-// PrintCall prints the call data for a single ticker to stdout and the personalized CSV files.
+// PrintCall prints the call data for a single ticker to the personalized CSV files.
 func (security *Security) PrintCall(call int, header bool, expiration string) {
 	var output string
 
@@ -532,9 +526,6 @@ func (security *Security) PrintCall(call int, header bool, expiration string) {
 	if header {
 		row = 1
 
-		output = security.formatHeader(cColsStdout, false)
-		fmt.Printf("%s", output)
-
 		output = security.formatHeader(cColsEb, true)
 		csv.AppendFile(ebFile, output, true)
 
@@ -543,9 +534,6 @@ func (security *Security) PrintCall(call int, header bool, expiration string) {
 
 		row += strings.Count(output, "\n")
 	}
-
-	output = security.formatCall(cColsStdout, call, false, expiration)
-	fmt.Printf("%s", output)
 
 	output = security.formatCall(cColsEb, call, true, expiration)
 	csv.AppendFile(ebFile, output, false)
