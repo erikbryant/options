@@ -155,12 +155,16 @@ func FindSecuritiesWithOptions(useFile string) ([]string, error) {
 			continue
 		}
 
+		// We are looking for weekly (or more frequent) options, so the period
+		// should be 7. But, if the exchange is closed on a Friday then the
+		// expiration moves to Thursday. That means there are now 8 days between
+		// it and the next expiration.
 		period, err := security.ExpirationPeriod()
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-		if period > 7 {
+		if period > 8 {
 			fmt.Println("Security expiration dates are too infrequent", security.Ticker, period)
 			continue
 		}
