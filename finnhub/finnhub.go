@@ -49,11 +49,11 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 				return nil, true, fmt.Errorf("Throttled")
 			}
 			seconds := reset - time.Now().Unix()
-			if seconds <= 0 || seconds > 5 {
+			if seconds <= 0 || seconds > 10 {
 				return nil, true, fmt.Errorf("Throttled")
 			}
 			after, err := time.ParseDuration(fmt.Sprintf("%ds", seconds))
-			if err != nil {
+			if err != nil || after < 5 {
 				after = time.Duration(5 * time.Second)
 			}
 			fmt.Printf("Throttled. Backing off for %s...", after)

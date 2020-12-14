@@ -239,6 +239,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 			if err != nil || after > 5 {
 				return nil, true, fmt.Errorf("Throttled")
 			}
+			after = time.Duration(5 * time.Second)
 			fmt.Printf("Throttled. Backing off for %s...", after)
 			time.Sleep(after)
 			fmt.Printf("done\n")
