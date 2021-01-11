@@ -47,7 +47,10 @@ func usage() {
 
 var skipList = []string{
 	"ACB",
+	"APHA",
 	"BRZU",
+	"CGC",
+	"CRON",
 	"ERX",
 	"EWW",
 	"FAS",
