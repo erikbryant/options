@@ -59,6 +59,7 @@ var skipList = []string{
 	"LABD",
 	"LABU",
 	"NUGT",
+	"SDS",
 	"SLV",
 	"SPXU",
 	"SQQQ",
