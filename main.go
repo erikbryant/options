@@ -6,6 +6,7 @@ import (
 	csvFmt "github.com/erikbryant/options/csv"
 	"github.com/erikbryant/options/finnhub"
 	"github.com/erikbryant/options/options"
+	"github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/tiingo"
 	"github.com/erikbryant/options/tradeking"
 	"github.com/erikbryant/options/utils"
@@ -23,26 +24,19 @@ var (
 	optionsFile = flag.String("optionsFile", "", "Options database filename")
 	all         = flag.Bool("all", false, "Use all of the options?")
 	expiration  = flag.String("expiration", "", "Only options up to this expiration")
-	maxStrike   = flag.Float64("maxStrike", 999999999, "Only tickers below this strike price")
-	minYield    = flag.Float64("minYield", 0, "Only tickers with at least this bid/strike yield")
-	minSafety   = flag.Float64("minSafety", 0, "Only tickers with at least this safety spread")
-	minCall     = flag.Float64("minCall", 0, "Only tickers with at least this call spread")
 	skip        = flag.String("skip", "", "Comma separated list of stocks to skip")
 	passPhrase  = flag.String("passPhrase", "", "Passphrase to unlock API key(s)")
-	itm         = flag.Bool("itm", true, "Include in-the-money options?")
 )
 
 func usage() {
 	fmt.Println("Usage:")
 	fmt.Println()
 	fmt.Println("  Generate the list of all tickers with options (skipping known options)")
-	fmt.Println("    options -regenerate -useFile <USE_nnnnnnnn.csv> -optionsFile options.csv")
+	fmt.Println("    options -regenerate -useFile <USE_nnnnnnnn.csv> -optionsFile options.csv -passPhrase XYZZY")
 	fmt.Println("  Find all option plays")
-	fmt.Println("    options -all -optionsFile options.csv -expiration 20200821 [-csv] [-header]")
-	fmt.Println("  Find interesting option plays")
-	fmt.Println("    options -all -optionsFile options.csv  -expiration 20200821[-csv] [-header] [-maxStrike 32.20] [-minYield 4.5]")
-	fmt.Println("  Find interesting option plays, limited to these tickers")
-	fmt.Println("    options -tickers=<ticker1,ticker2,...>  -expiration 20200821[-csv] [-header] [-maxStrike 32.20] [-minYield 4.5]")
+	fmt.Println("    options -all -optionsFile options.csv -expiration 20210219 -passPhrase XYZZY")
+	fmt.Println("  Find option plays limited to these tickers")
+	fmt.Println("    options -tickers=<ticker1,ticker2,...>  -expiration 20210219 -passPhrase XYZZY")
 }
 
 var skipList = []string{
@@ -139,89 +133,5 @@ func main() {
 		return
 	}
 
-	header := true
-	for _, security := range securities {
-		for put := range security.Puts {
-			if security.Puts[put].Strike > *maxStrike {
-				continue
-			}
-
-			if *expiration < security.Puts[put].Expiration {
-				continue
-			}
-
-			if security.Puts[put].Bid <= 0 {
-				continue
-			}
-
-			if security.Puts[put].BidStrikeRatio < *minYield {
-				continue
-			}
-
-			if security.Puts[put].SafetySpread < *minSafety {
-				continue
-			}
-
-			if security.Puts[put].CallSpread < *minCall {
-				continue
-			}
-
-			// If it is in the money, only consider it if '-itm=true'.
-			if security.Puts[put].Strike > security.Price && !*itm {
-				continue
-			}
-
-			// Does this option cost more than current market share price?
-			if security.Puts[put].PriceBasisDelta <= 0 {
-				continue
-			}
-
-			security.PrintPut(put, header, *expiration)
-
-			header = false
-		}
-	}
-
-	header = true
-	for _, security := range securities {
-		for call := range security.Calls {
-			if security.Calls[call].Strike > *maxStrike {
-				continue
-			}
-
-			if *expiration < security.Calls[call].Expiration {
-				continue
-			}
-
-			if security.Calls[call].Bid <= 0 {
-				continue
-			}
-
-			if security.Calls[call].BidPriceRatio < *minYield {
-				continue
-			}
-
-			if security.Calls[call].SafetySpread < *minSafety {
-				continue
-			}
-
-			if security.Calls[call].CallSpread < *minCall {
-				continue
-			}
-
-			// If it is in the money, only consider it if '-itm=true'.
-			if security.Calls[call].Strike < security.Price && !*itm {
-				continue
-			}
-
-			// Does this option cost more than current market share price?
-			if security.Calls[call].PriceBasisDelta <= 0 {
-				continue
-			}
-
-			security.PrintCall(call, header, *expiration)
-
-			header = false
-		}
-	}
+	security.Print(securities, *expiration)
 }

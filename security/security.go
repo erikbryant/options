@@ -51,14 +51,40 @@ type Security struct {
 	EarningsDate string
 }
 
-var (
-	pColsStdout = []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize"}
-	pColsEb     = []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"}
-	pColsCc     = []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "exposure"}
+// params holds the parameters for each user's output preferences.
+type params struct {
+	maxStrike float64
+	minYield  float64
+	minSafety float64
+	minCall   float64
+	itm       bool
+	cCols     []string
+	pCols     []string
+	user      string
+}
 
-	cColsStdout = []string{"ticker", "expiration", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize"}
-	cColsEb     = []string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"}
-	cColsCc     = []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "outlay"}
+var (
+	paramsEb = params{
+		50.0,
+		1.5,
+		10.0,
+		20.0,
+		true,
+		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"},
+		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"},
+		"eb",
+	}
+
+	paramsCc = params{
+		40.0,
+		0.0,
+		0.0,
+		0.0,
+		true,
+		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "outlay"},
+		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "exposure"},
+		"cc",
+	}
 )
 
 // HasOptions returns whether the security has options.
@@ -445,7 +471,7 @@ func (security *Security) formatHeader(cols []string, csv bool) string {
 }
 
 // formatPut formats the put data for a single ticker.
-func (security *Security) formatPut(cols []string, put int, csv bool, expiration string) string {
+func (security *Security) formatPut(p params, put int, csv bool, expiration string) string {
 	var separator string
 	var output string
 
@@ -455,8 +481,8 @@ func (security *Security) formatPut(cols []string, put int, csv bool, expiration
 		separator = "  "
 	}
 
-	for _, col := range cols {
-		_, c := security.cell(cols, col, security.Puts[put], expiration)
+	for _, col := range p.pCols {
+		_, c := security.cell(p.pCols, col, security.Puts[put], expiration)
 		output += c
 		output += separator
 	}
@@ -466,7 +492,7 @@ func (security *Security) formatPut(cols []string, put int, csv bool, expiration
 }
 
 // formatCall formats the call data for a single ticker.
-func (security *Security) formatCall(cols []string, call int, csv bool, expiration string) string {
+func (security *Security) formatCall(p params, call int, csv bool, expiration string) string {
 	var separator string
 	var output string
 
@@ -476,8 +502,8 @@ func (security *Security) formatCall(cols []string, call int, csv bool, expirati
 		separator = "  "
 	}
 
-	for _, col := range cols {
-		_, c := security.callCell(cols, col, security.Calls[call], expiration)
+	for _, col := range p.cCols {
+		_, c := security.callCell(p.cCols, col, security.Calls[call], expiration)
 		output += c
 		output += separator
 	}
@@ -489,57 +515,134 @@ func (security *Security) formatCall(cols []string, call int, csv bool, expirati
 var row = 1
 
 // PrintPut prints the put data for a single ticker to the personalized CSV files.
-func (security *Security) PrintPut(put int, header bool, expiration string) {
+func (security *Security) PrintPut(p params, put int, header bool, expiration string, file string) {
 	var output string
-
-	ebFile := "weeklyOptions_" + expiration + "_puts_eb.csv"
-	ccFile := "weeklyOptions_" + expiration + "_puts_cc.csv"
 
 	if header {
 		row = 1
 
-		output = security.formatHeader(pColsEb, true)
-		csv.AppendFile(ebFile, output, true)
-
-		output = security.formatHeader(pColsCc, true)
-		csv.AppendFile(ccFile, output, true)
+		output = security.formatHeader(p.pCols, true)
+		csv.AppendFile(file, output, true)
 
 		row += strings.Count(output, "\n")
 	}
 
-	output = security.formatPut(pColsEb, put, true, expiration)
-	csv.AppendFile(ebFile, output, false)
-
-	output = security.formatPut(pColsCc, put, true, expiration)
-	csv.AppendFile(ccFile, output, false)
+	output = security.formatPut(p, put, true, expiration)
+	csv.AppendFile(file, output, false)
 
 	row += strings.Count(output, "\n")
 }
 
 // PrintCall prints the call data for a single ticker to the personalized CSV files.
-func (security *Security) PrintCall(call int, header bool, expiration string) {
+func (security *Security) PrintCall(p params, call int, header bool, expiration string, file string) {
 	var output string
-
-	ebFile := "weeklyOptions_" + expiration + "_calls_eb.csv"
-	ccFile := "weeklyOptions_" + expiration + "_calls_cc.csv"
 
 	if header {
 		row = 1
 
-		output = security.formatHeader(cColsEb, true)
-		csv.AppendFile(ebFile, output, true)
-
-		output = security.formatHeader(cColsCc, true)
-		csv.AppendFile(ccFile, output, true)
+		output = security.formatHeader(p.cCols, true)
+		csv.AppendFile(file, output, true)
 
 		row += strings.Count(output, "\n")
 	}
 
-	output = security.formatCall(cColsEb, call, true, expiration)
-	csv.AppendFile(ebFile, output, false)
-
-	output = security.formatCall(cColsCc, call, true, expiration)
-	csv.AppendFile(ccFile, output, false)
+	output = security.formatCall(p, call, true, expiration)
+	csv.AppendFile(file, output, false)
 
 	row += strings.Count(output, "\n")
+}
+
+// Temp while refactoring.
+func Print(securities []Security, expiration string) {
+	for _, p := range []params{paramsEb, paramsCc} {
+		file := "options_" + p.user + "_puts_" + expiration + ".csv"
+
+		header := true
+		for _, security := range securities {
+			for put := range security.Puts {
+				if expiration < security.Puts[put].Expiration {
+					continue
+				}
+
+				if security.Puts[put].Bid <= 0 {
+					continue
+				}
+
+				// Does this option cost more than current market share price?
+				if security.Puts[put].PriceBasisDelta <= 0 {
+					continue
+				}
+
+				if security.Puts[put].Strike > p.maxStrike {
+					continue
+				}
+
+				if security.Puts[put].BidStrikeRatio < p.minYield {
+					continue
+				}
+
+				if security.Puts[put].SafetySpread < p.minSafety {
+					continue
+				}
+
+				if security.Puts[put].CallSpread < p.minCall {
+					continue
+				}
+
+				// If it is in the money, only consider it if '-itm=true'.
+				if security.Puts[put].Strike > security.Price && !p.itm {
+					continue
+				}
+
+				security.PrintPut(p, put, header, expiration, file)
+
+				header = false
+			}
+		}
+
+		file = "options_" + p.user + "_calls_" + expiration + ".csv"
+
+		header = true
+		for _, security := range securities {
+			for call := range security.Calls {
+				if expiration < security.Calls[call].Expiration {
+					continue
+				}
+
+				if security.Calls[call].Bid <= 0 {
+					continue
+				}
+
+				// Does this option cost more than current market share price?
+				if security.Calls[call].PriceBasisDelta <= 0 {
+					continue
+				}
+
+				if security.Calls[call].Strike > p.maxStrike {
+					continue
+				}
+
+				if security.Calls[call].BidPriceRatio < p.minYield {
+					continue
+				}
+
+				if security.Calls[call].SafetySpread < p.minSafety {
+					continue
+				}
+
+				if security.Calls[call].CallSpread < p.minCall {
+					continue
+				}
+
+				// If it is in the money, only consider it if '-itm=true'.
+				if security.Calls[call].Strike < security.Price && !p.itm {
+					continue
+				}
+
+				security.PrintCall(p, call, header, expiration, file)
+
+				header = false
+			}
+		}
+	}
 }
