@@ -552,7 +552,7 @@ func (security *Security) PrintCall(p params, call int, header bool, expiration 
 	row += strings.Count(output, "\n")
 }
 
-// Temp while refactoring.
+// Print writes a filtered set of options to CSV files.
 func Print(securities []Security, expiration string) {
 	for _, p := range []params{paramsEb, paramsCc} {
 		file := "options_" + p.user + "_puts_" + expiration + ".csv"
