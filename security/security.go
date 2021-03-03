@@ -613,24 +613,7 @@ func Print(securities []Security, expiration string) {
 					continue
 				}
 
-				// Does this option cost more than current market share price?
-				if security.Calls[call].PriceBasisDelta <= 0 {
-					continue
-				}
-
 				if security.Calls[call].Strike > p.maxStrike {
-					continue
-				}
-
-				if security.Calls[call].BidPriceRatio < p.minYield {
-					continue
-				}
-
-				if security.Calls[call].SafetySpread < p.minSafety {
-					continue
-				}
-
-				if security.Calls[call].CallSpread < p.minCall {
 					continue
 				}
 
