@@ -53,14 +53,15 @@ type Security struct {
 
 // params holds the parameters for each user's output preferences.
 type params struct {
-	maxStrike float64
-	minYield  float64
-	minSafety float64
-	minCall   float64
-	itm       bool
-	cCols     []string
-	pCols     []string
-	user      string
+	maxStrike       float64
+	minYield        float64
+	minSafetySpread float64
+	minCallSpread   float64
+	minIfCalled     float64
+	itm             bool
+	cCols           []string
+	pCols           []string
+	user            string
 }
 
 var (
@@ -69,6 +70,7 @@ var (
 		1.5,
 		10.0,
 		20.0,
+		0.0,
 		true,
 		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"},
 		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"},
@@ -77,6 +79,7 @@ var (
 
 	paramsCc = params{
 		40.0,
+		0.0,
 		0.0,
 		0.0,
 		0.0,
@@ -581,11 +584,11 @@ func Print(securities []Security, expiration string) {
 					continue
 				}
 
-				if security.Puts[put].SafetySpread < p.minSafety {
+				if security.Puts[put].SafetySpread < p.minSafetySpread {
 					continue
 				}
 
-				if security.Puts[put].CallSpread < p.minCall {
+				if security.Puts[put].CallSpread < p.minCallSpread {
 					continue
 				}
 
@@ -614,6 +617,23 @@ func Print(securities []Security, expiration string) {
 				}
 
 				if security.Calls[call].Strike > p.maxStrike {
+					continue
+				}
+
+				if security.Calls[call].BidPriceRatio < p.minYield {
+					continue
+				}
+
+				if security.Calls[call].SafetySpread < p.minSafetySpread {
+					continue
+				}
+
+				if security.Calls[call].CallSpread < p.minCallSpread {
+					continue
+				}
+
+				ifCalled := (security.Calls[call].Bid + security.Calls[call].Strike - security.Price) / security.Price
+				if ifCalled < p.minIfCalled {
 					continue
 				}
 
