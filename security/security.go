@@ -196,7 +196,8 @@ func (security *Security) cell(cols []string, col string, contract Contract, exp
 		c = fmt.Sprintf("%10s", contract.Expiration)
 	case "price":
 		h = fmt.Sprintf("%8s", "Price")
-		c = fmt.Sprintf("$%7.02f", security.Price)
+		c = fmt.Sprintf("\"=googlefinance(\"\"%s\"\", \"\"price\"\")\"", security.Ticker)
+		// c = fmt.Sprintf("$%7.02f", security.Price)
 	case "strike":
 		h = fmt.Sprintf("%8s", "Strike")
 		c = fmt.Sprintf("$%7.02f", contract.Strike)
