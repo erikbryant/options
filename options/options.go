@@ -5,7 +5,7 @@ import (
 	"github.com/erikbryant/options/cboe"
 	"github.com/erikbryant/options/eoddata"
 	"github.com/erikbryant/options/finnhub"
-	sec "github.com/erikbryant/options/security"
+	"github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/tradeking"
 	"github.com/erikbryant/options/utils"
 	"os"
@@ -23,23 +23,23 @@ func Init(start, end string) (err error) {
 	return
 }
 
-// Securities accumulates stock/option data for the given tickers and returns it in a list of Security.
-func Securities(tickers []string) ([]sec.Security, error) {
-	var securities []sec.Security
+// Securities accumulates stock/option data for the given tickers and returns it in a list of sec.
+func Securities(tickers []string) ([]security.Security, error) {
+	var securities []security.Security
 
 	for _, ticker := range tickers {
 		fmt.Printf("\r%s    ", ticker)
-		security, err := Security(ticker)
+		sec, err := getSecurity(ticker)
 		if err != nil {
 			fmt.Printf("Error getting security data %s\n", err)
 			continue
 		}
 
-		if !security.HasOptions() {
+		if !sec.HasOptions() {
 			continue
 		}
 
-		securities = append(securities, security)
+		securities = append(securities, sec)
 	}
 
 	fmt.Printf("\r%d of %d tickers loaded\n\n", len(securities), len(tickers))
@@ -51,20 +51,20 @@ func Securities(tickers []string) ([]sec.Security, error) {
 var primary = "finnhub"
 
 // getStock retrieves stock data for the given ticker. It load balances across multiple providers.
-func getStock(security sec.Security) (sec.Security, error) {
+func getStock(sec security.Security) (security.Security, error) {
 	var retryable bool
 	var err error
 
 	for {
 		if primary == "finnhub" {
-			security, retryable, err = finnhub.GetStock(security)
+			sec, retryable, err = finnhub.GetStock(sec)
 			if err == nil || !retryable {
 				break
 			}
 			fmt.Println("Finnhub is throttling, switching to TradeKing")
 			primary = "tradeking"
 		}
-		security, retryable, err = tradeking.GetStock(security)
+		sec, retryable, err = tradeking.GetStock(sec)
 		if err == nil || !retryable {
 			break
 		}
@@ -73,45 +73,45 @@ func getStock(security sec.Security) (sec.Security, error) {
 		time.Sleep(6 * time.Second)
 	}
 
-	return security, nil
+	return sec, nil
 }
 
-// Security accumulates stock/option data for the given ticker and returns it in a Security.
-func Security(ticker string) (sec.Security, error) {
-	var security sec.Security
+// getSecurity accumulates stock/option data for the given ticker and returns it in a sec.
+func getSecurity(ticker string) (security.Security, error) {
+	var sec security.Security
 
-	security.Ticker = ticker
+	sec.Ticker = ticker
 
 	// Fetch data
-	security, err := tradeking.GetOptions(security)
+	sec, err := tradeking.GetOptions(sec)
 	if err != nil {
-		return security, fmt.Errorf("Error getting options %s %s", security.Ticker, err)
+		return sec, fmt.Errorf("Error getting options %s %s", sec.Ticker, err)
 	}
-	security, err = getStock(security)
+	sec, err = getStock(sec)
 	if err != nil {
-		return security, fmt.Errorf("Error getting stock %s %s", security.Ticker, err)
+		return sec, fmt.Errorf("Error getting stock %s %s", sec.Ticker, err)
 	}
-	security.EarningsDate = earnings[security.Ticker]
+	sec.EarningsDate = earnings[sec.Ticker]
 
 	// Synthetic data
-	for put := range security.Puts {
-		security.Puts[put].PriceBasisDelta = security.Price - (security.Puts[put].Strike - security.Puts[put].Bid)
-		security.Puts[put].LastTradeDays = int64(time.Now().Sub(security.Puts[put].LastTradeDate).Hours() / 24)
-		security.Puts[put].BidStrikeRatio = security.Puts[put].Bid / security.Puts[put].Strike * 100
-		security.Puts[put].BidPriceRatio = security.Puts[put].Bid / security.Price * 100
-		security.Puts[put].SafetySpread = (security.Price - (security.Puts[put].Strike - security.Puts[put].Bid)) / security.Price * 100
-		security.Puts[put].CallSpread = security.CallSpread(security.Puts[put].Expiration)
+	for put := range sec.Puts {
+		sec.Puts[put].PriceBasisDelta = sec.Price - (sec.Puts[put].Strike - sec.Puts[put].Bid)
+		sec.Puts[put].LastTradeDays = int64(time.Now().Sub(sec.Puts[put].LastTradeDate).Hours() / 24)
+		sec.Puts[put].BidStrikeRatio = sec.Puts[put].Bid / sec.Puts[put].Strike * 100
+		sec.Puts[put].BidPriceRatio = sec.Puts[put].Bid / sec.Price * 100
+		sec.Puts[put].SafetySpread = (sec.Price - (sec.Puts[put].Strike - sec.Puts[put].Bid)) / sec.Price * 100
+		sec.Puts[put].CallSpread = sec.CallSpread(sec.Puts[put].Expiration)
 	}
-	for call := range security.Calls {
-		security.Calls[call].PriceBasisDelta = security.Price - (security.Calls[call].Strike - security.Calls[call].Bid)
-		security.Calls[call].LastTradeDays = int64(time.Now().Sub(security.Calls[call].LastTradeDate).Hours() / 24)
-		security.Calls[call].BidStrikeRatio = security.Calls[call].Bid / security.Calls[call].Strike * 100
-		security.Calls[call].BidPriceRatio = security.Calls[call].Bid / security.Price * 100
-		security.Calls[call].SafetySpread = (security.Price - (security.Calls[call].Strike - security.Calls[call].Bid)) / security.Price * 100
-		security.Calls[call].CallSpread = security.CallSpread(security.Calls[call].Expiration)
+	for call := range sec.Calls {
+		sec.Calls[call].PriceBasisDelta = sec.Price - (sec.Calls[call].Strike - sec.Calls[call].Bid)
+		sec.Calls[call].LastTradeDays = int64(time.Now().Sub(sec.Calls[call].LastTradeDate).Hours() / 24)
+		sec.Calls[call].BidStrikeRatio = sec.Calls[call].Bid / sec.Calls[call].Strike * 100
+		sec.Calls[call].BidPriceRatio = sec.Calls[call].Bid / sec.Price * 100
+		sec.Calls[call].SafetySpread = (sec.Price - (sec.Calls[call].Strike - sec.Calls[call].Bid)) / sec.Price * 100
+		sec.Calls[call].CallSpread = sec.CallSpread(sec.Calls[call].Expiration)
 	}
 
-	return security, nil
+	return sec, nil
 }
 
 // FindSecuritiesWithOptions re-scans all known securities to see which have options and writes them to 'useFile.options.csv'.
@@ -142,16 +142,16 @@ func FindSecuritiesWithOptions(useFile string) ([]string, error) {
 
 	options := []string{}
 	for _, key := range securities {
-		var security sec.Security
-		security.Ticker = key
-		security, err = tradeking.GetOptions(security)
+		var sec security.Security
+		sec.Ticker = key
+		sec, err = tradeking.GetOptions(sec)
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
 
-		if !security.HasOptions() {
-			fmt.Println("Security does not have options", security.Ticker)
+		if !sec.HasOptions() {
+			fmt.Println("Security does not have options", sec.Ticker)
 			continue
 		}
 
@@ -159,13 +159,13 @@ func FindSecuritiesWithOptions(useFile string) ([]string, error) {
 		// should be 7. But, if the exchange is closed on a Friday then the
 		// expiration moves to Thursday. That means there are now 8 days between
 		// it and the next expiration.
-		period, err := security.ExpirationPeriod()
+		period, err := sec.ExpirationPeriod()
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
 		if period > 8 {
-			fmt.Println("Security expiration dates are too infrequent", security.Ticker, period)
+			fmt.Println("Security expiration dates are too infrequent", sec.Ticker, period)
 			continue
 		}
 

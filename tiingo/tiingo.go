@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/erikbryant/aes"
 	"github.com/erikbryant/options/cache"
-	sec "github.com/erikbryant/options/security"
+	"github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
 	"io/ioutil"
 	"net/http"
@@ -71,28 +71,28 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 }
 
 // parsePrices parses the quote json returned from finnhub.
-func parsePrices(m map[string]interface{}, security sec.Security) (sec.Security, error) {
+func parsePrices(m map[string]interface{}, sec security.Security) (security.Security, error) {
 	close, ok := m["close"]
 	if !ok {
-		return security, fmt.Errorf("Unable to parse prices object")
+		return sec, fmt.Errorf("Unable to parse prices object")
 	}
 
-	security.Price, ok = close.(float64)
+	sec.Price, ok = close.(float64)
 	if !ok {
-		return security, fmt.Errorf("Unable to convert c to float64 %v", close)
+		return sec, fmt.Errorf("Unable to convert c to float64 %v", close)
 	}
 
-	return security, nil
+	return sec, nil
 }
 
 // GetPrices looks up a single ticker symbol and returns its options.
-func GetPrices(security sec.Security) (sec.Security, error) {
+func GetPrices(sec security.Security) (security.Security, error) {
 	cacheStale := false
 	today := time.Now().Format("20060102")
 
 	d := time.Now().Format("2006-1-2")
 
-	url := "https://api.tiingo.com/tiingo/daily/" + strings.ToLower(security.Ticker) + "/prices?startDate=" + d + "&endDate=" + d + "&format=json&resampleFreq=monthly"
+	url := "https://api.tiingo.com/tiingo/daily/" + strings.ToLower(sec.Ticker) + "/prices?startDate=" + d + "&endDate=" + d + "&format=json&resampleFreq=monthly"
 
 	response, err := cache.Read(today + url)
 	if err != nil {
@@ -105,21 +105,21 @@ func GetPrices(security sec.Security) (sec.Security, error) {
 				continue
 			}
 			if err != nil {
-				return security, fmt.Errorf("Error fetching option data %s %s", security.Ticker, err)
+				return sec, fmt.Errorf("Error fetching option data %s %s", sec.Ticker, err)
 			}
 			break
 		}
 	}
 
-	security, err = parsePrices(response, security)
+	sec, err = parsePrices(response, sec)
 	if err != nil {
-		return security, fmt.Errorf("Error parsing market options %s", err)
+		return sec, fmt.Errorf("Error parsing market options %s", err)
 	}
 
 	// Only update the cache if the options fields were populated.
-	if cacheStale && security.HasOptions() {
+	if cacheStale && sec.HasOptions() {
 		cache.Update(today+url, response)
 	}
 
-	return security, nil
+	return sec, nil
 }

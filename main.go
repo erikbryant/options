@@ -17,26 +17,25 @@ import (
 )
 
 var (
-	cpuprofile  = flag.String("cpuprofile", "", "Enable profiling and write cpu profile to file")
-	tickers     = flag.String("tickers", "", "Comma separated list of stocks to get option data for")
-	regenerate  = flag.Bool("regenerate", false, "Regenerate option database?")
-	useFile     = flag.String("useFile", "", "USE equity database filename")
-	optionsFile = flag.String("optionsFile", "", "Options database filename")
-	all         = flag.Bool("all", false, "Use all of the options?")
-	expiration  = flag.String("expiration", "", "Only options up to this expiration")
-	skip        = flag.String("skip", "", "Comma separated list of stocks to skip")
-	passPhrase  = flag.String("passPhrase", "", "Passphrase to unlock API key(s)")
+	cpuprofile = flag.String("cpuprofile", "", "Enable profiling and write cpu profile to file")
+	passPhrase = flag.String("passPhrase", "", "Passphrase to unlock API key(s)")
+	regenerate = flag.Bool("regenerate", false, "Regenerate option database?")
+	useFile    = flag.String("useFile", "", "USE equity database filename")
+	all        = flag.Bool("all", true, "Use all of the options?")
+	expiration = flag.String("expiration", "", "Only options up to this expiration")
+	tickers    = flag.String("tickers", "", "Comma separated list of stocks to get option data for")
+	skip       = flag.String("skip", "", "Comma separated list of stocks to skip")
 )
 
 func usage() {
 	fmt.Println("Usage:")
 	fmt.Println()
 	fmt.Println("  Generate the list of all tickers with options (skipping known options)")
-	fmt.Println("    options -regenerate -useFile <USE_nnnnnnnn.csv> -optionsFile options.csv -passPhrase XYZZY")
+	fmt.Println("    options -passPhrase XYZZY -regenerate -useFile <USE_nnnnnnnn.csv>")
 	fmt.Println("  Find all option plays")
-	fmt.Println("    options -all -optionsFile options.csv -expiration 20210219 -passPhrase XYZZY")
+	fmt.Println("    options -passPhrase XYZZY -expiration 20211119")
 	fmt.Println("  Find option plays limited to these tickers")
-	fmt.Println("    options -tickers=<ticker1,ticker2,...>  -expiration 20210219 -passPhrase XYZZY")
+	fmt.Println("    options -passPhrase XYZZY -all=false -tickers=<ticker1,ticker2,...>  -expiration 20211119")
 }
 
 var skipList = []string{
@@ -82,6 +81,12 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
+	if *passPhrase == "" {
+		fmt.Println("You must specify a passPhrase")
+		usage()
+		return
+	}
+
 	tiingo.Init(*passPhrase)
 	tradeking.Init(*passPhrase)
 	finnhub.Init(*passPhrase)
@@ -91,6 +96,12 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
+		return
+	}
+
+	if *expiration == "" {
+		fmt.Println("You must specify an expiration")
+		usage()
 		return
 	}
 
@@ -109,7 +120,7 @@ func main() {
 	var t []string
 
 	if *all {
-		t, err = csvFmt.GetFile(*optionsFile)
+		t, err = csvFmt.GetFile("options.csv")
 		if err != nil {
 			fmt.Println(err)
 			return

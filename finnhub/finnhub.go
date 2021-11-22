@@ -6,7 +6,7 @@ import (
 	"github.com/erikbryant/aes"
 	"github.com/erikbryant/options/cache"
 	"github.com/erikbryant/options/date"
-	sec "github.com/erikbryant/options/security"
+	"github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
 	"io/ioutil"
 	"net/http"
@@ -109,30 +109,30 @@ func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 }
 
 // parseQuote parses the quote json returned from finnhub.
-func parseQuote(m map[string]interface{}, security sec.Security) (sec.Security, error) {
+func parseQuote(m map[string]interface{}, sec security.Security) (security.Security, error) {
 	t, ok := m["t"]
 	if !ok {
-		return security, fmt.Errorf("Unable to parse quote object timestamp")
+		return sec, fmt.Errorf("Unable to parse quote object timestamp")
 	}
 
 	c, ok := m["c"]
 	if !ok {
-		return security, fmt.Errorf("Unable to parse quote object close")
+		return sec, fmt.Errorf("Unable to parse quote object close")
 	}
 
-	security.Price, ok = c.(float64)
+	sec.Price, ok = c.(float64)
 	if !ok {
-		return security, fmt.Errorf("Unable to convert c to float64 %v", c)
+		return sec, fmt.Errorf("Unable to convert c to float64 %v", c)
 	}
 
 	now := time.Now()
 	quoteDate := time.Unix(int64(t.(float64)), 0)
 	sinceClose := date.TimeSinceClose(now)
 	if now.Sub(quoteDate) > (sinceClose + 6*time.Hour + 30*time.Minute) {
-		return security, fmt.Errorf("Security price is stale %s %f %d %v %v %v", security.Ticker, security.Price, int64(t.(float64)), quoteDate, sinceClose, now.Sub(quoteDate))
+		return sec, fmt.Errorf("Security price is stale %s %f %d %v %v %v", sec.Ticker, sec.Price, int64(t.(float64)), quoteDate, sinceClose, now.Sub(quoteDate))
 	}
 
-	return security, nil
+	return sec, nil
 }
 
 // EarningDates finds all earning announcement dates in a given date range.
@@ -169,12 +169,12 @@ func EarningDates(start, end string) (map[string]string, error) {
 	return dates, nil
 }
 
-// GetStock looks up a single ticker symbol returns the security.
-func GetStock(security sec.Security) (sec.Security, bool, error) {
+// GetStock looks up a single ticker symbol returns the sec.
+func GetStock(sec security.Security) (security.Security, bool, error) {
 	cacheStale := false
 	today := time.Now().Format("20060102")
 
-	url := "https://finnhub.io/api/v1/quote?symbol=" + security.Ticker
+	url := "https://finnhub.io/api/v1/quote?symbol=" + sec.Ticker
 
 	response, err := cache.Read(today + url)
 	if err != nil {
@@ -182,19 +182,19 @@ func GetStock(security sec.Security) (sec.Security, bool, error) {
 		var retryable bool
 		response, retryable, err = webRequest(url)
 		if err != nil {
-			return security, retryable, fmt.Errorf("Error fetching stock data %s %s", security.Ticker, err)
+			return sec, retryable, fmt.Errorf("Error fetching stock data %s %s", sec.Ticker, err)
 		}
 	}
 
-	security, err = parseQuote(response, security)
+	sec, err = parseQuote(response, sec)
 	if err != nil {
-		return security, false, fmt.Errorf("Error parsing quote %s", err)
+		return sec, false, fmt.Errorf("Error parsing quote %s", err)
 	}
 
 	// Only update the cache if the price was populated.
-	if cacheStale && security.Price > 0 {
+	if cacheStale && sec.Price > 0 {
 		cache.Update(today+url, response)
 	}
 
-	return security, false, nil
+	return sec, false, nil
 }
