@@ -15,10 +15,8 @@ Save the matching options to two files in CSV format ready to be loaded into Goo
   favored. If there was no entry for Finnhub then it is queried from the web. This is
   slow and wasteful. Figure out how to poll for either being in the cache before going
   to the web. Or, write a backfill that polls Finnhub exclusively so that it never needs
-  to flip to TradeKing on a second run.
-* If we run this on a Friday evening we still get data output for that day's expirations,
-  which are no longer available. Either check the time of day to see if the market is
-  still open or make the expiration flag a date range.
+  to flip to TradeKing on a second run. Or, have it check the cache for either F or TK
+  before making a call to the web.
 
 * Write a call seller tool
 * Have it check upcoming expiration and one subsequent to see if the subsequent expiration
@@ -28,3 +26,12 @@ Save the matching options to two files in CSV format ready to be loaded into Goo
 
 * Send errors to stderr
 * Make it interactive?
+
+* Add list of always-display securities
+* Add glossary of terms to README (ticker vs security)
+
+## Glossary
+
+* Ticker - The 1-5 letter symbol for a stock.
+* Contract - An options contract.
+* Security - The complete set of data for a given stock, including contracts.
