@@ -459,9 +459,10 @@ func (security *Security) PrintCall(p params, call int, header bool, expiration 
 // Print writes a filtered set of options to CSV files.
 func Print(securities []Security, expiration string) {
 	for _, p := range []params{paramsEb, paramsCc} {
-		file := "options_" + p.user + "_puts_" + expiration + ".csv"
 
+		file := "options_" + p.user + "_puts_" + expiration + ".csv"
 		header := true
+
 		for _, security := range securities {
 			for put := range security.Puts {
 				if expiration < security.Puts[put].Expiration {
@@ -505,8 +506,8 @@ func Print(securities []Security, expiration string) {
 		}
 
 		file = "options_" + p.user + "_calls_" + expiration + ".csv"
-
 		header = true
+
 		for _, security := range securities {
 			for call := range security.Calls {
 				if expiration < security.Calls[call].Expiration {
