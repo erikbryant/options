@@ -26,8 +26,6 @@ type Contract struct {
 	BidPriceRatio   float64 // bid / strike
 	SafetySpread    float64 // distance between share price and cost basis
 	CallSpread      float64 // how many strikes out do calls still have bids
-	// Formatted output values
-	column map[string]string
 }
 
 // DayRange represents a single (historical) trading day.
