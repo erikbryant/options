@@ -182,8 +182,8 @@ func (security *Security) CallSpread(expiration string) float64 {
 	return 100.0 * (maxStrike - security.Price) / security.Price
 }
 
-// cell returns a header and cell string formatted for printing.
-func (security *Security) cell(cols []string, col string, contract Contract, expiration string) (string, string) {
+// cellPut returns a header and cell string formatted for printing.
+func (security *Security) cellPut(cols []string, col string, contract Contract, expiration string) (string, string) {
 	h := fmt.Sprintf("col not found: %s", col)
 	c := fmt.Sprintf("col not found: %s", col)
 
@@ -198,7 +198,6 @@ func (security *Security) cell(cols []string, col string, contract Contract, exp
 		h = fmt.Sprintf("%8s", "Price")
 		tickerCol := colName(cols, "ticker")
 		c = fmt.Sprintf("\"=googlefinance(%s%d, \"\"price\"\")\"", tickerCol, row)
-		// c = fmt.Sprintf("$%7.02f", security.Price)
 	case "strike":
 		h = fmt.Sprintf("%8s", "Strike")
 		c = fmt.Sprintf("$%7.02f", contract.Strike)
@@ -302,120 +301,22 @@ func (security *Security) cell(cols []string, col string, contract Contract, exp
 	return h, c
 }
 
-// callCell returns a header and cell string formatted for printing.
-func (security *Security) callCell(cols []string, col string, contract Contract, expiration string) (string, string) {
+// cellCall returns a header and cell string formatted for printing.
+func (security *Security) cellCall(cols []string, col string, contract Contract, expiration string) (string, string) {
+	// Everything for a put is the same as for a call -- except in-the-money.
+	if col != "itm" {
+		return security.cellPut(cols, col, contract, expiration)
+	}
+
 	h := fmt.Sprintf("col not found: %s", col)
 	c := fmt.Sprintf("col not found: %s", col)
 
-	switch col {
-	case "ticker":
-		h = fmt.Sprintf("%8s", "Ticker")
-		c = fmt.Sprintf("%8s", security.Ticker)
-	case "expiration":
-		h = fmt.Sprintf("%10s", "Expiration")
-		c = fmt.Sprintf("%10s", contract.Expiration)
-	case "price":
-		h = fmt.Sprintf("%8s", "Price")
-		c = fmt.Sprintf("$%7.02f", security.Price)
-	case "strike":
-		h = fmt.Sprintf("%8s", "Strike")
-		c = fmt.Sprintf("$%7.02f", contract.Strike)
-	case "last":
-		h = fmt.Sprintf("%8s", "Last")
-		c = fmt.Sprintf("$%7.02f", contract.Last)
-	case "bid":
-		h = fmt.Sprintf("%8s", "Bid")
-		c = fmt.Sprintf("$%7.02f", contract.Bid)
-	case "ask":
-		h = fmt.Sprintf("%8s", "Ask")
-		c = fmt.Sprintf("$%7.02f", contract.Ask)
-	case "bidStrikeRatio":
-		h = fmt.Sprintf("%8s", "B/S ratio")
-		bidCol := colName(cols, "bid")
-		strikeCol := colName(cols, "strike")
-		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, strikeCol, row)
-		// c = fmt.Sprintf("%8.1f%%", contract.BidStrikeRatio)
-	case "bidPriceRatio":
-		h = fmt.Sprintf("%8s", "B/P ratio")
-		bidCol := colName(cols, "bid")
-		priceCol := colName(cols, "price")
-		c = fmt.Sprintf("=%s%d/%s%d", bidCol, row, priceCol, row)
-		// c = fmt.Sprintf("%8.1f%%", contract.BidPriceRatio)
-	case "ifCalled":
-		h = fmt.Sprintf("%8s", "If Called")
-		bidCol := colName(cols, "bid")
-		priceCol := colName(cols, "price")
-		strikeCol := colName(cols, "strike")
-		c = fmt.Sprintf("=(%s%d+%s%d-%s%d)/%s%d", bidCol, row, strikeCol, row, priceCol, row, priceCol, row)
-	case "safetySpread":
-		h = fmt.Sprintf("%8s", "Safety")
-		priceCol := colName(cols, "price")
-		bidCol := colName(cols, "bid")
-		strikeCol := colName(cols, "strike")
-		c = fmt.Sprintf("=(%s%d-(%s%d-%s%d))/%s%d", priceCol, row, strikeCol, row, bidCol, row, priceCol, row)
-		// c = fmt.Sprintf("%7.1f%%", contract.SafetySpread)
-	case "callSpread":
-		h = fmt.Sprintf("%8s", "CallSprd")
-		c = fmt.Sprintf("%7.1f%%", contract.CallSpread)
-	case "age":
-		h = fmt.Sprintf("%8s", "Age")
-		// TODO: If it is the weekend, then make the threshold for
-		// printing higher (i.e., count these as business days, not
-		// calendar days).
-		var lastTrade string
-		if contract.LastTradeDays >= 2 {
-			lastTrade = fmt.Sprintf("%dd", contract.LastTradeDays)
-		}
-		c = fmt.Sprintf("%8s", lastTrade)
-	case "earnings":
-		h = fmt.Sprintf("%8s", "Earnings")
-		earnings := ""
-		if security.EarningsDate != "" && security.EarningsDate <= expiration {
-			earnings = "E"
-		}
-		c = fmt.Sprintf("%8s", earnings)
-	case "itm":
-		h = fmt.Sprintf("%8s", "In the $")
-		inTheMoney := ""
-		if contract.Strike <= security.Price {
-			inTheMoney = "ITM"
-		}
-		c = fmt.Sprintf("%8s", inTheMoney)
-	case "lotSize":
-		h = fmt.Sprintf("%8s", "Lot Size")
-		c = fmt.Sprintf("%8d", contract.Size)
-	case "lots":
-		h = fmt.Sprintf("%8s", "Lots")
-		c = fmt.Sprintf("%8d", 0)
-	case "exposure":
-		h = fmt.Sprintf("%8s", "Exposure")
-		strikeCol := colName(cols, "strike")
-		lotSizeCol := colName(cols, "lotSize")
-		lotsCol := colName(cols, "lots")
-		c = fmt.Sprintf("=%s%d*%s%d*%s%d", strikeCol, row, lotSizeCol, row, lotsCol, row)
-	case "outlay":
-		h = fmt.Sprintf("%8s", "Outlay")
-		priceCol := colName(cols, "price")
-		lotSizeCol := colName(cols, "lotSize")
-		lotsCol := colName(cols, "lots")
-		c = fmt.Sprintf("=%s%d*%s%d*%s%d", priceCol, row, lotSizeCol, row, lotsCol, row)
-	case "premium":
-		h = fmt.Sprintf("%8s", "Premium")
-		bidCol := colName(cols, "bid")
-		lotSizeCol := colName(cols, "lotSize")
-		lotsCol := colName(cols, "lots")
-		c = fmt.Sprintf("=%s%d*%s%d*%s%d", bidCol, row, lotSizeCol, row, lotsCol, row)
-	case "notes":
-		h = fmt.Sprintf("%8s", "Notes")
-		c = fmt.Sprintf("%8s", "")
-	case "otmItm":
-		h = fmt.Sprintf("%8s", "OTM/ITM")
-		if contract.Strike <= security.Price {
-			c = fmt.Sprintf("%8s", "ITM")
-		} else {
-			c = fmt.Sprintf("%8s", "OTM")
-		}
+	h = fmt.Sprintf("%8s", "In the $")
+	inTheMoney := ""
+	if contract.Strike <= security.Price {
+		inTheMoney = "ITM"
 	}
+	c = fmt.Sprintf("%8s", inTheMoney)
 
 	return h, c
 }
@@ -466,7 +367,7 @@ func (security *Security) formatHeader(cols []string, csv bool) string {
 
 	// The column names.
 	for _, col := range cols {
-		h, _ := security.cell(cols, col, security.Puts[0], "")
+		h, _ := security.cellPut(cols, col, security.Puts[0], "")
 		output += h
 		output += separator
 	}
@@ -487,7 +388,7 @@ func (security *Security) formatPut(p params, put int, csv bool, expiration stri
 	}
 
 	for _, col := range p.pCols {
-		_, c := security.cell(p.pCols, col, security.Puts[put], expiration)
+		_, c := security.cellPut(p.pCols, col, security.Puts[put], expiration)
 		output += c
 		output += separator
 	}
@@ -508,7 +409,7 @@ func (security *Security) formatCall(p params, call int, csv bool, expiration st
 	}
 
 	for _, col := range p.cCols {
-		_, c := security.callCell(p.cCols, col, security.Calls[call], expiration)
+		_, c := security.cellCall(p.cCols, col, security.Calls[call], expiration)
 		output += c
 		output += separator
 	}
