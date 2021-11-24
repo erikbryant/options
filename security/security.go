@@ -3,6 +3,7 @@ package security
 import (
 	"fmt"
 	"github.com/erikbryant/options/csv"
+	"github.com/erikbryant/options/gdrive"
 	"sort"
 	"strings"
 	"time"
@@ -63,18 +64,6 @@ type params struct {
 }
 
 var (
-	paramsEb = params{
-		50.0,
-		1.5,
-		10.0,
-		20.0,
-		0.0,
-		true,
-		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"},
-		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"},
-		"eb",
-	}
-
 	paramsCc = params{
 		40.0,
 		0.0,
@@ -85,6 +74,18 @@ var (
 		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "outlay"},
 		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "exposure"},
 		"cc",
+	}
+
+	paramsEb = params{
+		50.0,
+		1.5,
+		10.0,
+		20.0,
+		0.0,
+		true,
+		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"},
+		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"},
+		"eb",
 	}
 )
 
@@ -458,7 +459,7 @@ func (security *Security) PrintCall(p params, call int, header bool, expiration 
 
 // Print writes a filtered set of options to CSV files.
 func Print(securities []Security, expiration string) {
-	for _, p := range []params{paramsEb, paramsCc} {
+	for _, p := range []params{paramsCc, paramsEb} {
 
 		file := "options_" + p.user + "_puts_" + expiration + ".csv"
 		header := true
@@ -505,6 +506,15 @@ func Print(securities []Security, expiration string) {
 			}
 		}
 
+		parentID := "1BpXjfOqRaSnpv0peBNzA8GcudX2-KMH3"
+
+		_, err := gdrive.CreateSheet(file, parentID)
+		if err != nil {
+			fmt.Printf("Unable to upload options file: %s %v\n", file, err)
+		} else {
+			fmt.Printf("Uploaded %s\n", file)
+		}
+
 		file = "options_" + p.user + "_calls_" + expiration + ".csv"
 		header = true
 
@@ -548,6 +558,13 @@ func Print(securities []Security, expiration string) {
 
 				header = false
 			}
+		}
+
+		_, err = gdrive.CreateSheet(file, parentID)
+		if err != nil {
+			fmt.Printf("Unable to upload options file: %s %v\n", file, err)
+		} else {
+			fmt.Printf("Uploaded %s\n", file)
 		}
 	}
 }
