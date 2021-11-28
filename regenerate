@@ -1,0 +1,41 @@
+function usage() {
+  echo "Usage:"
+  echo
+  echo "$0 passPhrase expiration"
+  echo
+  echo "Where:"
+  echo "  passPhrase - The pass phrase to unlock the API keys"
+  echo "  expiration - The date in yymmdd form of the latest possible expiration date"
+  echo
+  echo "Example:"
+  echo "  $0 topSecret123 20211129"
+  exit
+}
+
+function regenerate() {
+  go fmt ./...
+  golint ./...
+  go test ./...
+  go run main.go -passPhrase ${passPhrase} -regenerate -useFile USE_*
+  mv USE_*.options.csv options.csv
+  git --no-pager diff --unified=0 --color=always options.csv | egrep -v "@@"
+}
+
+[[ $# -ne 2 ]] && usage
+
+passPhrase=$1
+expiration=$2
+
+mv ~/Downloads/USE_* .
+regenerate
+
+set -e
+
+# Clean old files out of the cache.
+find web-request-cache -mmin +1440 -delete
+
+go fmt ./...
+golint ./...
+go test ./...
+go run main.go -passPhrase ${passPhrase} -expiration ${expiration}
+
