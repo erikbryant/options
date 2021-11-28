@@ -8,7 +8,7 @@ function usage() {
   echo "  expiration - The date in yymmdd form of the latest possible expiration date"
   echo
   echo "Example:"
-  echo "  $0 topSecret123 20211129"
+  echo "  $0 topSecret123 20211126"
   exit
 }
 
