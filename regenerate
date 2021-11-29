@@ -1,3 +1,5 @@
+set -e
+
 function usage() {
   echo "Usage:"
   echo
@@ -12,10 +14,11 @@ function usage() {
   exit
 }
 
+# If there is a USE_* file, regenerate the list of interesting options (options.csv).
 function regenerate() {
-  go fmt ./...
-  golint ./...
-  go test ./...
+  mv ~/Downloads/USE_* . || true
+  exists=$( find . -name "USE_*" | wc -l )
+  [[ ${exists} -eq 0 ]] && return
   go run main.go -passPhrase ${passPhrase} -regenerate -useFile USE_*
   mv USE_*.options.csv options.csv
   git --no-pager diff --unified=0 --color=always options.csv | egrep -v "@@"
@@ -26,16 +29,15 @@ function regenerate() {
 passPhrase=$1
 expiration=$2
 
-mv ~/Downloads/USE_* .
-regenerate
-
-set -e
-
 # Clean old files out of the cache.
-find web-request-cache -mmin +1440 -delete
+find web-request-cache -type f -mmin +1440 -delete
 
+# Make sure all the code is clean/healthy/working.
 go fmt ./...
 golint ./...
 go test ./...
+
+regenerate
+
 go run main.go -passPhrase ${passPhrase} -expiration ${expiration}
 
