@@ -93,7 +93,8 @@ func getSecurity(ticker string) (security.Security, error) {
 	}
 	sec.EarningsDate = earnings[sec.Ticker]
 
-	// Synthetic data
+	// Synthetic data. Use the index to access the option instead of having
+	// range return the option, since range returns a COPY of the option.
 	for put := range sec.Puts {
 		sec.Puts[put].PriceBasisDelta = sec.Price - (sec.Puts[put].Strike - sec.Puts[put].Bid)
 		sec.Puts[put].LastTradeDays = int64(time.Now().Sub(sec.Puts[put].LastTradeDate).Hours() / 24)
