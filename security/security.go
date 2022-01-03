@@ -20,6 +20,8 @@ type Contract struct {
 	LastTradeDate time.Time
 	Size          int
 	OpenInterest  int64
+	Delta         float64
+	IV            float64
 	// Derived values
 	PriceBasisDelta float64 // Share price minus cost basis
 	LastTradeDays   int64   // Age of last trade in days
@@ -71,8 +73,8 @@ var (
 		0.0,
 		0.0,
 		true,
-		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "outlay"},
-		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "exposure"},
+		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "outlay"},
+		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "exposure"},
 		"cc",
 	}
 
@@ -83,8 +85,8 @@ var (
 		20.0,
 		0.0,
 		true,
-		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"},
-		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"},
+		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"},
+		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"},
 		"eb",
 	}
 )
@@ -227,6 +229,12 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 		priceCol := colName(cols, "price")
 		strikeCol := colName(cols, "strike")
 		c = fmt.Sprintf("=(%s%d+%s%d-%s%d)/%s%d", bidCol, row, strikeCol, row, priceCol, row, priceCol, row)
+	case "delta":
+		h = fmt.Sprintf("%8s", "Delta")
+		c = fmt.Sprintf("%7.1f%%", contract.Delta)
+	case "IV":
+		h = fmt.Sprintf("%8s", "IV")
+		c = fmt.Sprintf("%7.1f%%", contract.IV)
 	case "safetySpread":
 		h = fmt.Sprintf("%8s", "Safety")
 		priceCol := colName(cols, "price")

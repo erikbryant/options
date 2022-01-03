@@ -87,6 +87,24 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 		}
 		strikes[contract.Strike] = true
 
+		delta, ok := val.(map[string]interface{})["idelta"]
+		if !ok {
+			return sec, fmt.Errorf("Unable to parse idelta")
+		}
+		contract.Delta, err = strconv.ParseFloat(delta.(string), 64)
+		if err != nil {
+			return sec, err
+		}
+
+		iv, ok := val.(map[string]interface{})["imp_Volatility"]
+		if !ok {
+			return sec, fmt.Errorf("Unable to parse imp_Volatility")
+		}
+		contract.IV, err = strconv.ParseFloat(iv.(string), 64)
+		if err != nil {
+			return sec, err
+		}
+
 		last, ok := val.(map[string]interface{})["last"]
 		if !ok {
 			return sec, fmt.Errorf("Unable to parse last")
