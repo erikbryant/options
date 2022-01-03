@@ -32,6 +32,9 @@ expiration=$2
 # Clean old files out of the cache.
 find web-request-cache -type f -mmin +1440 -delete
 
+# Clean out any old options runs
+rm -rf options_??_*.csv
+
 # Make sure all the code is clean/healthy/working.
 go fmt ./...
 golint ./...
