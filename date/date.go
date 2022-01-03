@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// InTradingHours returns true if the market is open at time t, false otherwise. It ignores holidays.
+// InTradingHours returns true if the market is open at time t (ignoring holidays).
 func InTradingHours(t time.Time) bool {
 	// The market runs on Eastern time.
 	eastern, _ := time.LoadLocation("America/New_York")
@@ -28,14 +28,14 @@ func InTradingHours(t time.Time) bool {
 	return true
 }
 
-// timeSinceMidnight returns the number of seconds that have elapsed since midnight today.
+// timeSinceMidnight returns the number of seconds that have elapsed since midnight of the given day.
 func timeSinceMidnight(t time.Time) time.Duration {
 	year, month, day := t.Date()
 	t2 := time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 	return t.Sub(t2)
 }
 
-// TimeSinceClose returns the time between the last market close and the given time.
+// TimeSinceClose returns the time between the last market close and the given time (ignoring holidays).
 func TimeSinceClose(t time.Time) time.Duration {
 	// The market runs on Eastern time.
 	eastern, _ := time.LoadLocation("America/New_York")

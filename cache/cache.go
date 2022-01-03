@@ -10,6 +10,7 @@ import (
 
 const cacheDir = "./web-request-cache/"
 
+// sanitize replaces reserved filesystem characers with '-'
 func sanitize(id string) string {
 	id = strings.ReplaceAll(id, "/", "-")
 	return id
