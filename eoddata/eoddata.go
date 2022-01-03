@@ -22,7 +22,7 @@ func USEquities(useFile string) ([]string, error) {
 		ticker := cells[0]
 
 		// Skip non-standard symbols.
-		if !utils.AlphaNumeric(ticker) {
+		if !utils.IsLetter(ticker) {
 			continue
 		}
 

@@ -5,8 +5,8 @@ import (
 	"unicode"
 )
 
-// AlphaNumeric returns true if all chars in string are alphanumeric, false otherwise.
-func AlphaNumeric(s string) bool {
+// IsLetter returns true if all chars in string are alpha, false otherwise.
+func IsLetter(s string) bool {
 	for _, char := range s {
 		if !unicode.IsLetter(char) {
 			return false
