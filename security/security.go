@@ -73,8 +73,8 @@ var (
 		0.0,
 		0.0,
 		true,
-		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "outlay"},
-		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "lots", "premium", "exposure"},
+		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "outlay"},
+		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "exposure"},
 		"cc",
 	}
 
@@ -85,8 +85,8 @@ var (
 		20.0,
 		0.0,
 		true,
-		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "outlay", "premium"},
-		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "lots", "exposure", "premium"},
+		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "KellyCriterion", "lots", "outlay", "premium"},
+		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "KellyCriterion", "lots", "exposure", "premium"},
 		"eb",
 	}
 )
@@ -231,10 +231,10 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 		c = fmt.Sprintf("=(%s%d+%s%d-%s%d)/%s%d", bidCol, row, strikeCol, row, priceCol, row, priceCol, row)
 	case "delta":
 		h = fmt.Sprintf("%8s", "Delta")
-		c = fmt.Sprintf("%7.1f%%", contract.Delta)
+		c = fmt.Sprintf("%7.1f", contract.Delta)
 	case "IV":
 		h = fmt.Sprintf("%8s", "IV")
-		c = fmt.Sprintf("%7.1f%%", contract.IV)
+		c = fmt.Sprintf("%7.1f", contract.IV)
 	case "safetySpread":
 		h = fmt.Sprintf("%8s", "Safety")
 		priceCol := colName(cols, "price")
@@ -272,6 +272,16 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 	case "lotSize":
 		h = fmt.Sprintf("%8s", "Lot Size")
 		c = fmt.Sprintf("%8d", contract.Size)
+	case "KellyCriterion":
+		// Percent of portfolio to risk on a given investment
+		// We use delta as the win factor
+		// Win factors below 0.5 result in negative percents. Filter those away.
+		// https://www.fidelity.com/viewpoints/active-investor/options-trade-size
+		// Puts have negative deltas.
+		// We don't want to get assigned on a put, so take the inverse of delta.
+		h = fmt.Sprintf("%s", "% to Risk")
+		deltaCol := colName(cols, "delta")
+		c = fmt.Sprintf("\"=if(%s%d = 0, 0, (1+%s%d) - (1-(1+%s%d))/((1+%s%d)/(1-(1+%s%d))))\"", deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row)
 	case "lots":
 		h = fmt.Sprintf("%8s", "Lots")
 		c = fmt.Sprintf("%8d", 0)
@@ -310,20 +320,35 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 
 // cellCall returns a header and cell string formatted for printing.
 func (security *Security) cellCall(cols []string, col string, contract Contract, expiration string) (string, string) {
-	// Everything for a put is the same as for a call -- except in-the-money.
-	if col != "itm" {
+	// Almost everything for a put is the same as for a call
+	if col != "itm" && col != "KellyCriterion" {
 		return security.cellPut(cols, col, contract, expiration)
 	}
 
 	h := fmt.Sprintf("col not found: %s", col)
 	c := fmt.Sprintf("col not found: %s", col)
 
-	h = fmt.Sprintf("%8s", "In the $")
-	inTheMoney := ""
-	if contract.Strike <= security.Price {
-		inTheMoney = "ITM"
+	switch col {
+	case "itm":
+		h = fmt.Sprintf("col not found: %s", col)
+		c = fmt.Sprintf("col not found: %s", col)
+
+		h = fmt.Sprintf("%8s", "In the $")
+		inTheMoney := ""
+		if contract.Strike <= security.Price {
+			inTheMoney = "ITM"
+		}
+		c = fmt.Sprintf("%8s", inTheMoney)
+
+	case "KellyCriterion":
+		// Percent of portfolio to risk on a given investment
+		// We use delta as the win factor
+		// Win factors below 0.5 result in negative percents. Filter those away.
+		// https://www.fidelity.com/viewpoints/active-investor/options-trade-size
+		h = fmt.Sprintf("%s", "% to Risk")
+		deltaCol := colName(cols, "delta")
+		c = fmt.Sprintf("\"=if(%s%d = 0, 0, abs(%s%d) - (1-abs(%s%d))/(abs(%s%d)/(1-abs(%s%d))))\"", deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row)
 	}
-	c = fmt.Sprintf("%8s", inTheMoney)
 
 	return h, c
 }
