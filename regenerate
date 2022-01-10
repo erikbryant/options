@@ -30,6 +30,7 @@ passPhrase=$1
 expiration=$2
 
 # Clean old files out of the cache.
+mkdir -p web-request-cache
 find web-request-cache -type f -mmin +1440 -delete
 
 # Clean out any old options runs
