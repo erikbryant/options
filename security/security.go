@@ -539,6 +539,7 @@ func Print(securities []Security, expiration string) {
 			}
 		}
 
+		// The Google Drive ID of the folder to upload to
 		parentID := "1BpXjfOqRaSnpv0peBNzA8GcudX2-KMH3"
 
 		_, err := gdrive.CreateSheet(file, parentID)

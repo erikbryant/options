@@ -1,3 +1,5 @@
+#!/bin/zsh
+
 set -e
 
 function usage() {
@@ -29,12 +31,15 @@ function regenerate() {
 passPhrase=$1
 expiration=$2
 
-# Clean old files out of the cache.
+# Clean old files out of the cache. They are only good for a day.
 mkdir -p web-request-cache
 find web-request-cache -type f -mmin +1440 -delete
 
 # Clean out any old options runs
-rm -rf options_??_*.csv
+find . -name "options_??_*.csv" -depth 1 -delete
+
+# Clean out expired tokens. They are only good for around a week.
+find . -type f -name token.json -depth 1 -mmin +12960 -delete
 
 # Make sure all the code is clean/healthy/working.
 go fmt ./...
@@ -44,4 +49,3 @@ go test ./...
 regenerate
 
 go run main.go -passPhrase ${passPhrase} -expiration ${expiration}
-

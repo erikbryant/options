@@ -20,15 +20,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-
+	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
+	"io/ioutil"
+	"net/http"
+	"os"
 )
 
 // Retrieves a token from a local file.
@@ -66,7 +66,10 @@ func saveToken(path string, token *oauth2.Token) error {
 // Request a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser: \n%v\n\n", authURL)
+
+	fmt.Printf("Opening authorization link in your browser: \n%v\n\n", authURL)
+	browser.OpenURL(authURL)
+
 	fmt.Println("Enter the authorization code:")
 
 	var authCode string
