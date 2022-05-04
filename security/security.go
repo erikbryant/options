@@ -50,6 +50,7 @@ type Security struct {
 	Puts         []Contract
 	Calls        []Contract
 	EarningsDate string
+	PE           float64
 }
 
 // params holds the parameters for each user's output preferences.
@@ -73,8 +74,8 @@ var (
 		0.0,
 		0.0,
 		true,
-		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "outlay"},
-		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "exposure"},
+		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "outlay"},
+		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "exposure"},
 		"cc",
 	}
 
@@ -85,8 +86,8 @@ var (
 		20.0,
 		0.0,
 		true,
-		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "KellyCriterion", "lots", "outlay", "premium"},
-		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "itm", "lotSize", "KellyCriterion", "lots", "exposure", "premium"},
+		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "outlay", "premium"},
+		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "exposure", "premium"},
 		"eb",
 	}
 )
@@ -262,6 +263,13 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 			earnings = "E"
 		}
 		c = fmt.Sprintf("%8s", earnings)
+	case "pe":
+		h = fmt.Sprintf("%8s", "P/E Ratio")
+		if security.PE == 0 {
+			c = ""
+		} else {
+			c = fmt.Sprintf("%7.02f", security.PE)
+		}
 	case "itm":
 		h = fmt.Sprintf("%8s", "In the $")
 		inTheMoney := ""

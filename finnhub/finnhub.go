@@ -135,6 +135,33 @@ func parseQuote(m map[string]interface{}, sec security.Security) (security.Secur
 	return sec, nil
 }
 
+// parseQuote parses the quote json returned from finnhub.
+func parseMetric(m map[string]interface{}, sec security.Security) (security.Security, error) {
+	mMetric, ok := m["metric"]
+	if !ok {
+		return sec, fmt.Errorf("Unable to parse metric object")
+	}
+
+	metric, ok := mMetric.(map[string]interface{})
+	if !ok {
+		return sec, fmt.Errorf("Unable to decode metric object")
+	}
+
+	pe, ok := metric["peBasicExclExtraTTM"]
+	if !ok {
+		return sec, fmt.Errorf("Unable to parse metric object peBasicExclExtraTTM")
+	}
+
+	if pe != nil {
+		sec.PE, ok = pe.(float64)
+		if !ok {
+			return sec, fmt.Errorf("Unable to convert pe to float64 %v", pe)
+		}
+	}
+
+	return sec, nil
+}
+
 // EarningDates finds all earning announcement dates in a given date range.
 func EarningDates(start, end string) (map[string]string, error) {
 	today := time.Now().Format("20060102")
@@ -169,8 +196,7 @@ func EarningDates(start, end string) (map[string]string, error) {
 	return dates, nil
 }
 
-// GetStock looks up a single ticker symbol returns the sec.
-func GetStock(sec security.Security) (security.Security, bool, error) {
+func getQuote(sec security.Security) (security.Security, bool, error) {
 	cacheStale := false
 	today := time.Now().Format("20060102")
 
@@ -182,7 +208,7 @@ func GetStock(sec security.Security) (security.Security, bool, error) {
 		var retryable bool
 		response, retryable, err = webRequest(url)
 		if err != nil {
-			return sec, retryable, fmt.Errorf("Error fetching stock data %s %s", sec.Ticker, err)
+			return sec, retryable, fmt.Errorf("Error fetching quote data %s %s", sec.Ticker, err)
 		}
 	}
 
@@ -197,4 +223,44 @@ func GetStock(sec security.Security) (security.Security, bool, error) {
 	}
 
 	return sec, false, nil
+}
+
+func getMetric(sec security.Security) (security.Security, bool, error) {
+	cacheStale := false
+	today := time.Now().Format("20060102")
+
+	url := "https://finnhub.io/api/v1/stock/metric?metric=all&symbol=" + sec.Ticker
+
+	response, err := cache.Read(today + url)
+	if err != nil {
+		cacheStale = true
+		var retryable bool
+		response, retryable, err = webRequest(url)
+		if err != nil {
+			return sec, retryable, fmt.Errorf("Error fetching metric data %s %s", sec.Ticker, err)
+		}
+	}
+
+	sec, err = parseMetric(response, sec)
+	if err != nil {
+		return sec, false, fmt.Errorf("Error parsing metric %s", err)
+	}
+
+	// Only update the cache if the price was populated.
+	if cacheStale && sec.Price > 0 {
+		cache.Update(today+url, response)
+	}
+
+	return sec, false, nil
+}
+
+// GetStock looks up a single ticker symbol returns the sec.
+func GetStock(sec security.Security) (security.Security, bool, error) {
+	sec, retryable, err := getQuote(sec)
+	if err != nil {
+		return sec, retryable, err
+	}
+
+	sec, retryable, err = getMetric(sec)
+	return sec, retryable, err
 }

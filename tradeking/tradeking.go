@@ -230,6 +230,16 @@ func parseMarketExt(m map[string]interface{}, sec security.Security) (security.S
 		return sec, err
 	}
 
+	pe, ok := quote.(map[string]interface{})["pe"]
+	if !ok {
+		return sec, fmt.Errorf("Unable to parse pe")
+	}
+
+	sec.PE, err = strconv.ParseFloat(pe.(string), 64)
+	if err != nil {
+		return sec, err
+	}
+
 	return sec, nil
 }
 
