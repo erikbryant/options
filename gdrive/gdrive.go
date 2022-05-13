@@ -5,7 +5,7 @@ package gdrive
 // Create Oauth tokens
 // Save Oauth credentials to credentils.json
 //
-//  Go example
+// Go example
 //   https://cloud.google.com/docs/authentication?_ga=2.56685738.-1275246831.1637708616
 // GCP Console
 //   https://console.cloud.google.com/home/dashboard?project=options-333023
