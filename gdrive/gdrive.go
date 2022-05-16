@@ -29,6 +29,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Retrieves a token from a local file.
@@ -87,13 +88,12 @@ func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) (*http.Client, error) {
-	// The file token.json stores the user's access and refresh tokens, and is
-	// created automatically when the authorization flow completes for the first
-	// time.
+	// tokFile stores the user's access and refresh tokens. If it does not exist
+	// or has expired we will create it.
 	tokFile := "token.json"
 
 	tok, err := tokenFromFile(tokFile)
-	if err != nil {
+	if err != nil || tok.Expiry.Before(time.Now()) {
 		tok, err = getTokenFromWeb(config)
 		if err != nil {
 			return nil, err
