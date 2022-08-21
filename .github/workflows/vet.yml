@@ -1,4 +1,4 @@
-name: Code formatter
+name: go vet
 
 on: [push, pull_request]
 
@@ -12,7 +12,6 @@ jobs:
         go-version: 1.19
     - name: Check out source code
       uses: actions/checkout@v3
-    - name: Format
+    - name: Vet
       run: |
-        go fmt ./...
-        git diff --exit-code
+        go vet ./...

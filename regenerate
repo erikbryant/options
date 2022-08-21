@@ -44,11 +44,6 @@ find . -name "options_??_*.csv" -depth 1 -delete
 # Clean out expired tokens. They are only good for around a week.
 find . -type f -name token.json -depth 1 -mmin +12960 -delete
 
-# Make sure all the code is clean/healthy/working.
-go fmt ./...
-go vet ./...
-go test ./...
-
 regenerate
 
 go run main.go -passPhrase ${passPhrase} -expiration ${expiration}
