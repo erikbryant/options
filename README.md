@@ -1,6 +1,6 @@
 ![go fmt](https://github.com/erikbryant/options/actions/workflows/fmt.yml/badge.svg)
 ![go vet](https://github.com/erikbryant/options/actions/workflows/vet.yml/badge.svg)
-![go test](https://github.com/erikbryant/optios/actions/workflows/test.yml/badge.svg)
+![go test](https://github.com/erikbryant/options/actions/workflows/test.yml/badge.svg)
 
 # Options
 
