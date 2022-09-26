@@ -6,8 +6,8 @@ require (
 	github.com/erikbryant/aes v0.1.1
 	github.com/erikbryant/web v0.7.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
-	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094
-	google.golang.org/api v0.95.0
+	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
+	google.golang.org/api v0.97.0
 )
 
 require (
@@ -18,8 +18,8 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.1.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/net v0.0.0-20220907135653-1e95f45603a7 // indirect
-	golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
+	golang.org/x/net v0.0.0-20220923203811-8be639271d50 // indirect
+	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220624142145-8cd45d7dbd1f // indirect
