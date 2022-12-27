@@ -18,11 +18,12 @@ function usage() {
 
 # If there is a USE_* file, regenerate the list of interesting options (options.csv).
 function regenerate() {
-  mv ~/Downloads/USE_* . || true
-  exists=$( find . -name "USE_*" | wc -l )
-  [[ ${exists} -eq 0 ]] && return
-  go run main.go -passPhrase ${passPhrase} -regenerate -useFile USE_*
-  mv USE_*.options.csv options.csv
+  mv ~/Downloads/USE_*.csv . || true
+  count=$( find . -name "USE_20[0-9][0-9][0-9][0-9][0-9][0-9].csv" -depth 1 | wc -l )
+  [[ ${count} -eq 0 ]] && return
+  [[ ${count} -gt 1 ]] && echo "ERROR: Too many USE_*.csv files" && exit 1
+  go run main.go -passPhrase ${passPhrase} -regenerate -useFile USE_*.csv
+  mv USE_*.options.csv options.csv || true
   git --no-pager diff --unified=0 --color=always options.csv | egrep -v "@@"
 }
 
