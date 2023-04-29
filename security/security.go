@@ -68,7 +68,7 @@ type params struct {
 
 var (
 	paramsCc = params{
-		40.0,
+		100.0,
 		0.0,
 		0.0,
 		0.0,
