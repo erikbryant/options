@@ -5,7 +5,8 @@ token.json
 .DS_Store
 
 web-request-cache
-options_*
+*_*_calls.csv
+*_*_puts.csv
 
 # Binaries for programs and plugins
 *.exe

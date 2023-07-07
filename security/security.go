@@ -502,7 +502,7 @@ func (security *Security) PrintCall(p params, call int, header bool, expiration 
 func Print(securities []Security, expiration string) {
 	for _, p := range []params{paramsCc, paramsEb} {
 
-		file := "options_" + p.user + "_puts_" + expiration + ".csv"
+		file := p.user + "_" + expiration + "_puts" + ".csv"
 		header := true
 
 		for _, security := range securities {
@@ -557,7 +557,7 @@ func Print(securities []Security, expiration string) {
 			fmt.Printf("Uploaded %s\n", file)
 		}
 
-		file = "options_" + p.user + "_calls_" + expiration + ".csv"
+		file = p.user + "_" + expiration + "_calls" + ".csv"
 		header = true
 
 		for _, security := range securities {

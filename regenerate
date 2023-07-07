@@ -40,7 +40,8 @@ mkdir -p web-request-cache
 find web-request-cache -type f -mmin +1440 -delete
 
 # Clean out any old options runs
-find . -name "options_??_*.csv" -depth 1 -delete
+find . -name "??_*_puts.csv" -depth 1 -delete
+find . -name "??_*_calls.csv" -depth 1 -delete
 
 # Clean out expired tokens. They are only good for around a week.
 find . -type f -name token.json -depth 1 -mmin +12960 -delete
