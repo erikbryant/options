@@ -320,7 +320,7 @@ func GetOptions(sec security.Security) (security.Security, error) {
 				continue
 			}
 			if err != nil {
-				return sec, fmt.Errorf("Error fetching option data %s %s", sec.Ticker, err)
+				return sec, fmt.Errorf("Error fetching TradeKing option data %s %s", sec.Ticker, err)
 			}
 			break
 		}
