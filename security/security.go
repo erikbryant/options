@@ -124,7 +124,7 @@ func (security *Security) ExpirationPeriod() (int, error) {
 	const minExpirations = 5
 
 	if len(expirations) < minExpirations {
-		return -1, fmt.Errorf("Not enough expirations to determine period %s %v", security.Ticker, expirations)
+		return -1, fmt.Errorf("not enough expirations to determine period %s %v", security.Ticker, expirations)
 	}
 
 	var max = 0
@@ -134,13 +134,13 @@ func (security *Security) ExpirationPeriod() (int, error) {
 
 	prev, err = time.Parse("20060102", expirations[0])
 	if err != nil {
-		return -1, fmt.Errorf("Could not parse first expiration date %s %s", err, expirations[0])
+		return -1, fmt.Errorf("could not parse first expiration date %s %s", err, expirations[0])
 	}
 
 	for i := 1; i < minExpirations; i++ {
 		next, err = time.Parse("20060102", expirations[i])
 		if err != nil {
-			return -1, fmt.Errorf("Could not parse next expiration date %s %s", err, expirations[i])
+			return -1, fmt.Errorf("could not parse next expiration date %s %s", err, expirations[i])
 		}
 
 		days := int(next.Sub(prev).Hours() / 24)
@@ -339,9 +339,6 @@ func (security *Security) cellCall(cols []string, col string, contract Contract,
 
 	switch col {
 	case "itm":
-		h = fmt.Sprintf("col not found: %s", col)
-		c = fmt.Sprintf("col not found: %s", col)
-
 		h = fmt.Sprintf("%8s", "In the $")
 		inTheMoney := ""
 		if contract.Strike <= security.Price {

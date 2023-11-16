@@ -87,11 +87,11 @@ func getSecurity(ticker, expiration string) (security.Security, error) {
 	// Fetch data
 	sec, err := marketData.GetOptions(sec, expiration)
 	if err != nil {
-		return sec, fmt.Errorf("Error getting options %s %s", sec.Ticker, err)
+		return sec, fmt.Errorf("error getting options %s %s", sec.Ticker, err)
 	}
 	sec, err = getStock(sec)
 	if err != nil {
-		return sec, fmt.Errorf("Error getting stock %s %s", sec.Ticker, err)
+		return sec, fmt.Errorf("error getting stock %s %s", sec.Ticker, err)
 	}
 	sec.EarningsDate = earnings[sec.Ticker]
 
@@ -99,7 +99,7 @@ func getSecurity(ticker, expiration string) (security.Security, error) {
 	// range return the option, since range returns a COPY of the option.
 	for put := range sec.Puts {
 		sec.Puts[put].PriceBasisDelta = sec.Price - (sec.Puts[put].Strike - sec.Puts[put].Bid)
-		sec.Puts[put].LastTradeDays = int64(time.Now().Sub(sec.Puts[put].LastTradeDate).Hours() / 24)
+		sec.Puts[put].LastTradeDays = int64(time.Since(sec.Puts[put].LastTradeDate).Hours() / 24)
 		sec.Puts[put].BidStrikeRatio = sec.Puts[put].Bid / sec.Puts[put].Strike * 100
 		sec.Puts[put].BidPriceRatio = sec.Puts[put].Bid / sec.Price * 100
 		sec.Puts[put].SafetySpread = (sec.Price - (sec.Puts[put].Strike - sec.Puts[put].Bid)) / sec.Price * 100
@@ -107,7 +107,7 @@ func getSecurity(ticker, expiration string) (security.Security, error) {
 	}
 	for call := range sec.Calls {
 		sec.Calls[call].PriceBasisDelta = sec.Price - (sec.Calls[call].Strike - sec.Calls[call].Bid)
-		sec.Calls[call].LastTradeDays = int64(time.Now().Sub(sec.Calls[call].LastTradeDate).Hours() / 24)
+		sec.Calls[call].LastTradeDays = int64(time.Since(sec.Calls[call].LastTradeDate).Hours() / 24)
 		sec.Calls[call].BidStrikeRatio = sec.Calls[call].Bid / sec.Calls[call].Strike * 100
 		sec.Calls[call].BidPriceRatio = sec.Calls[call].Bid / sec.Price * 100
 		sec.Calls[call].SafetySpread = (sec.Price - (sec.Calls[call].Strike - sec.Calls[call].Bid)) / sec.Price * 100
@@ -121,12 +121,12 @@ func getSecurity(ticker, expiration string) (security.Security, error) {
 func FindSecuritiesWithOptions(useFile string) ([]string, error) {
 	securities, err := eoddata.USEquities(useFile)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading US equity list %s", err)
+		return nil, fmt.Errorf("error loading US equity list %s", err)
 	}
 
 	securities2, err := cboe.WeeklyOptions()
 	if err != nil {
-		return nil, fmt.Errorf("Error loading CBOE weekly options list %s", err)
+		return nil, fmt.Errorf("error loading CBOE weekly options list %s", err)
 	}
 
 	securities = utils.Combine(securities, securities2, []string{})

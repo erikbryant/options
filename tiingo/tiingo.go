@@ -3,14 +3,15 @@ package tiingo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/erikbryant/aes"
-	"github.com/erikbryant/options/cache"
-	"github.com/erikbryant/options/security"
-	"github.com/erikbryant/web"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/erikbryant/aes"
+	"github.com/erikbryant/options/cache"
+	"github.com/erikbryant/options/security"
+	"github.com/erikbryant/web"
 )
 
 var (
@@ -43,16 +44,16 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	for {
 		response, err = web.Request2(url, headers)
 		if err != nil {
-			return nil, false, fmt.Errorf("Error fetching symbol data %s", err)
+			return nil, false, fmt.Errorf("error fetching symbol data %s", err)
 		}
 		if response.StatusCode == 429 {
 			// TODO: Parse the response to see how long to wait.
-			return nil, true, fmt.Errorf("Throttled")
+			return nil, true, fmt.Errorf("throttled")
 		}
 		if response.StatusCode == 200 {
 			break
 		}
-		return nil, false, fmt.Errorf("Got an unexpected StatusCode %v", response)
+		return nil, false, fmt.Errorf("got an unexpected StatusCode %v", response)
 	}
 
 	contents, err := ioutil.ReadAll(response.Body)
@@ -64,7 +65,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 
 	err = json.Unmarshal(contents, &jsonObject)
 	if err != nil {
-		return nil, false, fmt.Errorf("Unable to unmarshal json %s", err)
+		return nil, false, fmt.Errorf("unable to unmarshal json %s", err)
 	}
 
 	return jsonObject, false, nil
@@ -74,12 +75,12 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 func parsePrices(m map[string]interface{}, sec security.Security) (security.Security, error) {
 	close, ok := m["close"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse prices object")
+		return sec, fmt.Errorf("unable to parse prices object")
 	}
 
 	sec.Price, ok = close.(float64)
 	if !ok {
-		return sec, fmt.Errorf("Unable to convert c to float64 %v", close)
+		return sec, fmt.Errorf("unable to convert c to float64 %v", close)
 	}
 
 	return sec, nil
@@ -105,7 +106,7 @@ func GetPrices(sec security.Security) (security.Security, error) {
 				continue
 			}
 			if err != nil {
-				return sec, fmt.Errorf("Error fetching Tiingo option data %s %s", sec.Ticker, err)
+				return sec, fmt.Errorf("error fetching Tiingo option data %s %s", sec.Ticker, err)
 			}
 			break
 		}
@@ -113,7 +114,7 @@ func GetPrices(sec security.Security) (security.Security, error) {
 
 	sec, err = parsePrices(response, sec)
 	if err != nil {
-		return sec, fmt.Errorf("Error parsing market options %s", err)
+		return sec, fmt.Errorf("error parsing market options %s", err)
 	}
 
 	// Only update the cache if the options fields were populated.

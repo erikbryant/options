@@ -20,16 +20,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"time"
 )
 
 // Retrieves a token from a local file.
@@ -54,7 +55,7 @@ func saveToken(path string, token *oauth2.Token) error {
 
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return fmt.Errorf("Unable to cache oauth token: %v", err)
+		return fmt.Errorf("unable to cache oauth token: %v", err)
 	}
 
 	defer f.Close()
@@ -75,12 +76,12 @@ func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 
 	var authCode string
 	if _, err := fmt.Scan(&authCode); err != nil {
-		return nil, fmt.Errorf("Unable to read authorization code %v", err)
+		return nil, fmt.Errorf("unable to read authorization code %v", err)
 	}
 
 	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to retrieve token from web %v", err)
+		return nil, fmt.Errorf("unable to retrieve token from web %v", err)
 	}
 
 	return tok, nil
@@ -113,13 +114,13 @@ func service() (*drive.Service, error) {
 
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read client secret file: %v", err)
+		return nil, fmt.Errorf("unable to read client secret file: %v", err)
 	}
 
 	// If you modify these scopes, delete the old token.json.
 	config, err := google.ConfigFromJSON(b, drive.DriveScope)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse client secret file to config: %v", err)
+		return nil, fmt.Errorf("unable to parse client secret file to config: %v", err)
 	}
 
 	client, err := getClient(config)
@@ -139,7 +140,7 @@ func CreateSheet(name string, parentID string) (*drive.File, error) {
 		return nil, err
 	}
 
-	content, err := os.Open(name)
+	content, _ := os.Open(name)
 	defer content.Close()
 
 	f := &drive.File{
@@ -150,7 +151,7 @@ func CreateSheet(name string, parentID string) (*drive.File, error) {
 
 	file, err := srv.Files.Create(f).Media(content, googleapi.ContentType("text/csv")).Do()
 	if err != nil {
-		return nil, fmt.Errorf("Could not create file: " + err.Error())
+		return nil, fmt.Errorf("could not create file: " + err.Error())
 	}
 
 	return file, nil
