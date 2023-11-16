@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sort"
-	"strconv"
 	"time"
 
 	"github.com/erikbryant/aes"
@@ -30,208 +28,124 @@ func Init(passPhrase string) {
 	}
 }
 
+func floats(m map[string]interface{}, key string) ([]float64, error) {
+	vals := []float64{}
+
+	data, ok := m[key].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unable to convert %s", key)
+	}
+
+	for _, d := range data {
+		v := 0.0
+		if d != nil {
+			v = d.(float64)
+		}
+		vals = append(vals, v)
+	}
+
+	return vals, nil
+}
+
+func int64s(m map[string]interface{}, key string) ([]int64, error) {
+	vals := []int64{}
+
+	data, ok := m[key].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unable to convert %s", key)
+	}
+
+	for _, d := range data {
+		vals = append(vals, int64(d.(float64)))
+	}
+
+	return vals, nil
+}
+
 // parseMarketOptions extracts salient information from the raw Trade King format.
 func parseMarketOptions(m map[string]interface{}, sec security.Security) (security.Security, error) {
-	quotes, err := extractQuotes(m)
+	underlyingPrice, err := floats(m, "underlyingPrice")
 	if err != nil {
 		return sec, err
 	}
 
-	quote, ok := quotes["quote"]
-	if !ok {
-		return sec, fmt.Errorf("Unable to parse quote")
+	strike, err := floats(m, "strike")
+	if err != nil {
+		return sec, err
 	}
 
-	strikes := make(map[float64]bool)
+	bid, err := floats(m, "bid")
+	if err != nil {
+		return sec, err
+	}
 
-	for _, val := range quote.([]interface{}) {
-		symbol, ok := val.(map[string]interface{})["symbol"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse symbol")
-		}
+	ask, err := floats(m, "ask")
+	if err != nil {
+		return sec, err
+	}
 
-		rootsymbol, ok := val.(map[string]interface{})["rootsymbol"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse rootsymbol")
-		}
-		if rootsymbol != sec.Ticker {
-			if len(rootsymbol.(string)) <= len(sec.Ticker) || rootsymbol.(string)[:len(sec.Ticker)] != sec.Ticker {
-				// Some options have a number prepended to their rootsymbol.
-				// ABBV has a rootsymbol of ABBV1. That's a close enough match.
-				return sec, fmt.Errorf("These options do not match ticker %s %s %s", rootsymbol, sec.Ticker, symbol)
-			}
-		}
+	expiration, err := int64s(m, "expiration")
+	if err != nil {
+		return sec, err
+	}
 
-		var contract security.Contract
-		var err error
+	delta, err := floats(m, "delta")
+	if err != nil {
+		return sec, err
+	}
 
-		xdate, ok := val.(map[string]interface{})["xdate"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse xdate")
-		}
-		contract.Expiration = xdate.(string)
+	iv, err := floats(m, "iv")
+	if err != nil {
+		return sec, err
+	}
 
-		strikeprice, ok := val.(map[string]interface{})["strikeprice"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse strikeprice")
-		}
-		contract.Strike, err = strconv.ParseFloat(strikeprice.(string), 64)
-		if err != nil {
-			return sec, err
-		}
-		strikes[contract.Strike] = true
+	last, err := floats(m, "last")
+	if err != nil {
+		return sec, err
+	}
 
-		delta, ok := val.(map[string]interface{})["idelta"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse idelta")
-		}
-		if delta != "" {
-			contract.Delta, err = strconv.ParseFloat(delta.(string), 64)
-			if err != nil {
-				return sec, err
-			}
-		}
+	openInterest, err := int64s(m, "openInterest")
+	if err != nil {
+		return sec, err
+	}
 
-		iv, ok := val.(map[string]interface{})["imp_Volatility"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse imp_Volatility")
-		}
-		if iv != "" {
-			contract.IV, err = strconv.ParseFloat(iv.(string), 64)
-			if err != nil {
-				return sec, err
-			}
-		}
+	sec.Price = underlyingPrice[0]
 
-		last, ok := val.(map[string]interface{})["last"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse last")
+	prev := strike[0]
+	for _, s := range strike {
+		// The list is doubled; has both call and put strikes. Only need one set.
+		if s < prev {
+			break
 		}
-		contract.Last, err = strconv.ParseFloat(last.(string), 64)
-		if err != nil {
-			return sec, err
-		}
+		sec.Strikes = append(sec.Strikes, s)
+		prev = s
+	}
 
-		bid, ok := val.(map[string]interface{})["bid"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse bid")
-		}
-		contract.Bid, err = strconv.ParseFloat(bid.(string), 64)
-		if err != nil {
-			return sec, err
-		}
+	side, ok := m["side"].([]interface{})
+	if !ok {
+		return sec, fmt.Errorf("unable to parse side")
+	}
+	for i, s := range side {
+		contract := security.Contract{}
+		contract.Strike = strike[i]
+		contract.Bid = bid[i]
+		contract.Ask = ask[i]
+		contract.Delta = delta[i]
+		contract.IV = iv[i]
+		contract.OpenInterest = openInterest[i]
+		contract.Last = last[i]
 
-		ask, ok := val.(map[string]interface{})["ask"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse ask")
-		}
-		contract.Ask, err = strconv.ParseFloat(ask.(string), 64)
-		if err != nil {
-			return sec, err
-		}
+		t := time.Unix(expiration[i], 0)
+		contract.Expiration = t.Format("2006-01-02")
 
-		contractSize, ok := val.(map[string]interface{})["contract_size"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse contract_size")
-		}
-		contract.Size, err = strconv.Atoi(contractSize.(string))
-		if err != nil {
-			// Sometimes the size is 'na'. That's OK. Anything else is an error.
-			if contractSize.(string) != "na" {
-				return sec, err
-			}
-			contract.Size = -1
-		}
-
-		date, ok := val.(map[string]interface{})["date"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse date")
-		}
-		contract.LastTradeDate, err = time.Parse("2006-01-02", date.(string))
-		if err != nil {
-			return sec, err
-		}
-
-		putCall, ok := val.(map[string]interface{})["put_call"]
-		if !ok {
-			return sec, fmt.Errorf("Unable to parse put_call")
-		}
-
-		if putCall == "put" {
-			sec.Puts = append(sec.Puts, contract)
-		} else if putCall == "call" {
+		switch s.(string) {
+		case "call":
 			sec.Calls = append(sec.Calls, contract)
-		} else {
-			return sec, fmt.Errorf("Found contract that was neither put nor call %s", putCall)
+		case "put":
+			sec.Puts = append(sec.Puts, contract)
+		default:
+			return sec, fmt.Errorf("unable to parse side type: %s", s.(string))
 		}
-	}
-
-	for key := range strikes {
-		sec.Strikes = append(sec.Strikes, key)
-	}
-
-	sort.Float64s(sec.Strikes)
-
-	return sec, nil
-}
-
-func extractQuotes(m map[string]interface{}) (map[string]interface{}, error) {
-	response, ok := m["response"]
-	if !ok {
-		return nil, fmt.Errorf("Unable to parse response object")
-	}
-
-	message, ok := response.(map[string]interface{})["error"]
-	if !ok {
-		return nil, fmt.Errorf("Unable to parse error message")
-	}
-	if message != "Success" {
-		return nil, fmt.Errorf("Error fetching sec data %s", message)
-	}
-
-	quotes, ok := response.(map[string]interface{})["quotes"]
-	if !ok {
-		return nil, fmt.Errorf("Unable to parse quotes")
-	}
-
-	q, ok := quotes.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("quotes was not a map[string]interface{} %v", quotes)
-	}
-
-	return q, nil
-}
-
-// parseMarketExt extracts salient information from the raw Trade King format.
-func parseMarketExt(m map[string]interface{}, sec security.Security) (security.Security, error) {
-	quotes, err := extractQuotes(m)
-	if err != nil {
-		return sec, err
-	}
-
-	quote, ok := quotes["quote"]
-	if !ok {
-		return sec, fmt.Errorf("Unable to parse quote")
-	}
-
-	last, ok := quote.(map[string]interface{})["last"]
-	if !ok {
-		return sec, fmt.Errorf("Unable to parse last")
-	}
-
-	sec.Price, err = strconv.ParseFloat(last.(string), 64)
-	if err != nil {
-		return sec, err
-	}
-
-	pe, ok := quote.(map[string]interface{})["pe"]
-	if !ok {
-		return sec, fmt.Errorf("Unable to parse pe")
-	}
-
-	sec.PE, err = strconv.ParseFloat(pe.(string), 64)
-	if err != nil {
-		return sec, err
 	}
 
 	return sec, nil
@@ -241,10 +155,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	var response *http.Response
 	var err error
 
-	fmt.Println(authToken)
 	url += "&token=" + authToken
-
-	fmt.Println(url)
 
 	for {
 		response, err = web.Request2(url, map[string]string{})
@@ -254,10 +165,10 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		if response.StatusCode == 429 {
 			retryAfter, ok := response.Header["X-Ratelimit-Retry-After"]
 			if !ok {
-				return nil, true, fmt.Errorf("Could not parse throttling header")
+				return nil, true, fmt.Errorf("could not parse throttling header")
 			}
 			if len(retryAfter) <= 0 {
-				return nil, true, fmt.Errorf("Could not parse throttling seconds")
+				return nil, true, fmt.Errorf("could not parse throttling seconds")
 			}
 			after, err := time.ParseDuration(retryAfter[0] + "s")
 			if err != nil || after > 5 {
@@ -272,7 +183,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		if response.StatusCode == 200 || response.StatusCode == 203 {
 			break
 		}
-		return nil, false, fmt.Errorf("Got an unexpected StatusCode %v", response)
+		return nil, false, fmt.Errorf("got an unexpected StatusCode %v", response)
 	}
 
 	contents, err := ioutil.ReadAll(response.Body)
@@ -284,7 +195,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 
 	err = json.Unmarshal(contents, &jsonObject)
 	if err != nil {
-		return nil, false, fmt.Errorf("Unable to unmarshal json %s", err)
+		return nil, false, fmt.Errorf("unable to unmarshal json %s", err)
 	}
 
 	return jsonObject, false, nil
@@ -305,7 +216,7 @@ func cachedFetch(url string) (map[string]interface{}, error) {
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("Error concatenating marketData option data %s", err)
+			return nil, fmt.Errorf("error concatenating marketData option data %s", err)
 		}
 		break
 	}
@@ -321,32 +232,17 @@ func fetch(url string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	for key := range response {
-		fmt.Println(key)
-	}
+	// r := response
+	// for r["next_url"] != nil {
+	// 	fmt.Println("next_url:", r["next_url"])
+	// 	r, _ = cachedFetch(r["next_url"].(string))
+	// 	fmt.Println(r)
+	// 	for _, val := range r {
+	// 		t = append(t, val)
+	// 	}
+	// 	fmt.Println(".")
+	// }
 
-	t := []interface{}{}
-	for _, val := range response["results"].([]interface{}) {
-		t = append(t, val)
-	}
-
-	r := response
-	for r["next_url"] != nil {
-		fmt.Println("next_url:", r["next_url"])
-		r, err = cachedFetch(r["next_url"].(string))
-		fmt.Println(r)
-		for _, val := range r["results"].([]interface{}) {
-			t = append(t, val)
-		}
-		fmt.Println(".")
-	}
-
-	response["results"] = t
-	fmt.Println()
-	for _, val := range response["results"].([]interface{}) {
-		fmt.Println(val)
-	}
-	fmt.Println()
 	return response, nil
 }
 
@@ -358,42 +254,14 @@ func GetOptions(sec security.Security, expiration string) (security.Security, er
 
 	response, err := fetch(url)
 	if err != nil {
-		return sec, fmt.Errorf("Error concatenating marketData options %s %s", sec.Ticker, err)
+		return sec, fmt.Errorf("error concatenating marketData options %s %s", sec.Ticker, err)
 	}
 
 	sec, err = parseMarketOptions(response, sec)
 	if err != nil {
-		return sec, fmt.Errorf("Error parsing marketData options %s", err)
+		return sec, fmt.Errorf("error parsing marketData options %s", err)
 	}
 	// }
 
 	return sec, nil
-}
-
-// GetStock looks up a single ticker symbol returns the sec.
-func GetStock(sec security.Security) (security.Security, bool, error) {
-	today := time.Now().Format("20060102")
-
-	url := "https://api.tradeking.com/v1/market/ext/quotes.json?symbols=" + sec.Ticker
-
-	response, err := cache.Read(today + url)
-	if err != nil {
-		var retryable bool
-		response, retryable, err = webRequest(url)
-		if err != nil {
-			return sec, retryable, fmt.Errorf("Error fetching stock data %s %s", sec.Ticker, err)
-		}
-	}
-
-	sec, err = parseMarketExt(response, sec)
-	if err != nil {
-		return sec, false, fmt.Errorf("Error parsing market ext %s", err)
-	}
-
-	// Only update the cache if the price was populated.
-	if sec.Price > 0 {
-		cache.Update(today+url, response)
-	}
-
-	return sec, false, nil
 }

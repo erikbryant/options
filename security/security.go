@@ -498,9 +498,6 @@ func (security *Security) PrintCall(p params, call int, header bool, expiration 
 
 // Print writes a filtered set of options to CSV files.
 func Print(securities []Security, expiration string) {
-	// FIXME
-	return
-
 	for _, p := range []params{paramsCc, paramsEb} {
 
 		file := p.user + "_" + expiration + "_puts" + ".csv"
