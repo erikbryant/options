@@ -2,14 +2,13 @@ package csv
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 )
 
 // GetFile returns the contents of a CSV file, minus the header and any blank lines.
 func GetFile(file string) ([]string, error) {
-	contents, err := ioutil.ReadFile(file)
+	contents, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read file %s", file)
 	}

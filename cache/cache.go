@@ -3,7 +3,7 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 )
@@ -20,7 +20,7 @@ func sanitize(id string) string {
 func Read(id string) (map[string]interface{}, error) {
 	object := path.Join(cacheDir, sanitize(id))
 
-	contents, err := ioutil.ReadFile(object)
+	contents, err := os.ReadFile(object)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read file %s %s", object, err)
 	}
@@ -45,7 +45,7 @@ func Update(id string, contents map[string]interface{}) {
 		return
 	}
 
-	err = ioutil.WriteFile(object, s, 0644)
+	err = os.WriteFile(object, s, 0644)
 	if err != nil {
 		fmt.Println("Error writing cache file", err)
 	}

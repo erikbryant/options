@@ -3,7 +3,7 @@ package tiingo
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -56,7 +56,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		return nil, false, fmt.Errorf("got an unexpected StatusCode %v", response)
 	}
 
-	contents, err := ioutil.ReadAll(response.Body)
+	contents, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, false, err
 	}

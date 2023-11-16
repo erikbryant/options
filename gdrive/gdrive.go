@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -112,7 +111,7 @@ func getClient(config *oauth2.Config) (*http.Client, error) {
 func service() (*drive.Service, error) {
 	ctx := context.Background()
 
-	b, err := ioutil.ReadFile("credentials.json")
+	b, err := os.ReadFile("credentials.json")
 	if err != nil {
 		return nil, fmt.Errorf("unable to read client secret file: %v", err)
 	}
