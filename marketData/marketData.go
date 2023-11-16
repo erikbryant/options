@@ -3,8 +3,9 @@ package marketData
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/erikbryant/aes"
@@ -160,24 +161,22 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	for {
 		response, err = web.Request2(url, map[string]string{})
 		if err != nil {
-			return nil, false, fmt.Errorf("Error fetching symbol data %s", err)
+			return nil, false, fmt.Errorf("error fetching symbol data %s", err)
 		}
 		if response.StatusCode == 429 {
-			retryAfter, ok := response.Header["X-Ratelimit-Retry-After"]
+			fmt.Println("Got a 429")
+			limitReset, ok := response.Header["X-Api-Ratelimit-Reset"]
 			if !ok {
 				return nil, true, fmt.Errorf("could not parse throttling header")
 			}
-			if len(retryAfter) <= 0 {
-				return nil, true, fmt.Errorf("could not parse throttling seconds")
+			utime, err := strconv.ParseInt(limitReset[0], 10, 64)
+			if err != nil {
+				return nil, true, err
 			}
-			after, err := time.ParseDuration(retryAfter[0] + "s")
-			if err != nil || after > 5 {
-				return nil, true, fmt.Errorf("Throttled")
-			}
-			after = time.Duration(5 * time.Second)
-			fmt.Printf("Throttled. Backing off for %s...", after)
-			time.Sleep(after)
-			fmt.Printf("done\n")
+
+			t := time.Unix(utime, 0)
+			fmt.Printf("Daily quota reached. Sleeping until it resets at %v\n", t)
+			time.Sleep(time.Until(t))
 			continue
 		}
 		if response.StatusCode == 200 || response.StatusCode == 203 {
@@ -186,7 +185,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		return nil, false, fmt.Errorf("got an unexpected StatusCode %v", response)
 	}
 
-	contents, err := ioutil.ReadAll(response.Body)
+	contents, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, false, err
 	}
@@ -203,6 +202,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 
 func cachedFetch(url string) (map[string]interface{}, error) {
 	today := time.Now().Format("20060102")
+	today = ""
 
 	response, err := cache.Read(today + url)
 	if err == nil {
