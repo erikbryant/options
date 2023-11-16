@@ -11,7 +11,7 @@ import (
 func GetFile(file string) ([]string, error) {
 	contents, err := ioutil.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read file %s", file)
+		return nil, fmt.Errorf("unable to read file %s", file)
 	}
 
 	lines := strings.Split(string(contents), "\n")

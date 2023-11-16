@@ -22,14 +22,14 @@ func Read(id string) (map[string]interface{}, error) {
 
 	contents, err := ioutil.ReadFile(object)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read file %s %s", object, err)
+		return nil, fmt.Errorf("unable to read file %s %s", object, err)
 	}
 
 	var jsonObject map[string]interface{}
 
 	err = json.Unmarshal(contents, &jsonObject)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to unmarshal cached json %s", err)
+		return nil, fmt.Errorf("unable to unmarshal cached json %s", err)
 	}
 
 	return jsonObject, nil

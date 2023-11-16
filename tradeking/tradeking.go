@@ -3,15 +3,16 @@ package tradeking
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/erikbryant/aes"
-	"github.com/erikbryant/options/cache"
-	"github.com/erikbryant/options/security"
-	"github.com/erikbryant/web"
 	"io/ioutil"
 	"net/http"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/erikbryant/aes"
+	"github.com/erikbryant/options/cache"
+	"github.com/erikbryant/options/security"
+	"github.com/erikbryant/web"
 )
 
 var (
@@ -45,7 +46,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 	quote, ok := quotes["quote"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse quote")
+		return sec, fmt.Errorf("unable to parse quote")
 	}
 
 	strikes := make(map[float64]bool)
@@ -53,18 +54,18 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 	for _, val := range quote.([]interface{}) {
 		symbol, ok := val.(map[string]interface{})["symbol"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse symbol")
+			return sec, fmt.Errorf("unable to parse symbol")
 		}
 
 		rootsymbol, ok := val.(map[string]interface{})["rootsymbol"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse rootsymbol")
+			return sec, fmt.Errorf("unable to parse rootsymbol")
 		}
 		if rootsymbol != sec.Ticker {
 			if len(rootsymbol.(string)) <= len(sec.Ticker) || rootsymbol.(string)[:len(sec.Ticker)] != sec.Ticker {
 				// Some options have a number prepended to their rootsymbol.
 				// ABBV has a rootsymbol of ABBV1. That's a close enough match.
-				return sec, fmt.Errorf("These options do not match ticker %s %s %s", rootsymbol, sec.Ticker, symbol)
+				return sec, fmt.Errorf("these options do not match ticker %s %s %s", rootsymbol, sec.Ticker, symbol)
 			}
 		}
 
@@ -73,13 +74,13 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		xdate, ok := val.(map[string]interface{})["xdate"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse xdate")
+			return sec, fmt.Errorf("unable to parse xdate")
 		}
 		contract.Expiration = xdate.(string)
 
 		strikeprice, ok := val.(map[string]interface{})["strikeprice"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse strikeprice")
+			return sec, fmt.Errorf("unable to parse strikeprice")
 		}
 		contract.Strike, err = strconv.ParseFloat(strikeprice.(string), 64)
 		if err != nil {
@@ -89,7 +90,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		delta, ok := val.(map[string]interface{})["idelta"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse idelta")
+			return sec, fmt.Errorf("unable to parse idelta")
 		}
 		if delta != "" {
 			contract.Delta, err = strconv.ParseFloat(delta.(string), 64)
@@ -100,7 +101,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		iv, ok := val.(map[string]interface{})["imp_Volatility"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse imp_Volatility")
+			return sec, fmt.Errorf("unable to parse imp_Volatility")
 		}
 		if iv != "" {
 			contract.IV, err = strconv.ParseFloat(iv.(string), 64)
@@ -111,7 +112,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		last, ok := val.(map[string]interface{})["last"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse last")
+			return sec, fmt.Errorf("unable to parse last")
 		}
 		contract.Last, err = strconv.ParseFloat(last.(string), 64)
 		if err != nil {
@@ -120,7 +121,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		bid, ok := val.(map[string]interface{})["bid"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse bid")
+			return sec, fmt.Errorf("unable to parse bid")
 		}
 		contract.Bid, err = strconv.ParseFloat(bid.(string), 64)
 		if err != nil {
@@ -129,7 +130,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		ask, ok := val.(map[string]interface{})["ask"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse ask")
+			return sec, fmt.Errorf("unable to parse ask")
 		}
 		contract.Ask, err = strconv.ParseFloat(ask.(string), 64)
 		if err != nil {
@@ -138,7 +139,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		contractSize, ok := val.(map[string]interface{})["contract_size"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse contract_size")
+			return sec, fmt.Errorf("unable to parse contract_size")
 		}
 		contract.Size, err = strconv.Atoi(contractSize.(string))
 		if err != nil {
@@ -151,7 +152,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		date, ok := val.(map[string]interface{})["date"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse date")
+			return sec, fmt.Errorf("unable to parse date")
 		}
 		contract.LastTradeDate, err = time.Parse("2006-01-02", date.(string))
 		if err != nil {
@@ -160,7 +161,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		putCall, ok := val.(map[string]interface{})["put_call"]
 		if !ok {
-			return sec, fmt.Errorf("Unable to parse put_call")
+			return sec, fmt.Errorf("unable to parse put_call")
 		}
 
 		if putCall == "put" {
@@ -168,7 +169,7 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 		} else if putCall == "call" {
 			sec.Calls = append(sec.Calls, contract)
 		} else {
-			return sec, fmt.Errorf("Found contract that was neither put nor call %s", putCall)
+			return sec, fmt.Errorf("found contract that was neither put nor call %s", putCall)
 		}
 	}
 
@@ -184,20 +185,20 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 func extractQuotes(m map[string]interface{}) (map[string]interface{}, error) {
 	response, ok := m["response"]
 	if !ok {
-		return nil, fmt.Errorf("Unable to parse response object")
+		return nil, fmt.Errorf("unable to parse response object")
 	}
 
 	message, ok := response.(map[string]interface{})["error"]
 	if !ok {
-		return nil, fmt.Errorf("Unable to parse error message")
+		return nil, fmt.Errorf("unable to parse error message")
 	}
 	if message != "Success" {
-		return nil, fmt.Errorf("Error fetching sec data %s", message)
+		return nil, fmt.Errorf("error fetching sec data %s", message)
 	}
 
 	quotes, ok := response.(map[string]interface{})["quotes"]
 	if !ok {
-		return nil, fmt.Errorf("Unable to parse quotes")
+		return nil, fmt.Errorf("unable to parse quotes")
 	}
 
 	q, ok := quotes.(map[string]interface{})
@@ -217,12 +218,12 @@ func parseMarketExt(m map[string]interface{}, sec security.Security) (security.S
 
 	quote, ok := quotes["quote"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse quote")
+		return sec, fmt.Errorf("unable to parse quote")
 	}
 
 	last, ok := quote.(map[string]interface{})["last"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse last")
+		return sec, fmt.Errorf("unable to parse last")
 	}
 
 	sec.Price, err = strconv.ParseFloat(last.(string), 64)
@@ -232,7 +233,7 @@ func parseMarketExt(m map[string]interface{}, sec security.Security) (security.S
 
 	pe, ok := quote.(map[string]interface{})["pe"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse pe")
+		return sec, fmt.Errorf("unable to parse pe")
 	}
 
 	sec.PE, err = strconv.ParseFloat(pe.(string), 64)
@@ -261,15 +262,15 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	for {
 		response, err = web.Request2(url, map[string]string{})
 		if err != nil {
-			return nil, false, fmt.Errorf("Error fetching symbol data %s", err)
+			return nil, false, fmt.Errorf("error fetching symbol data %s", err)
 		}
 		if response.StatusCode == 429 {
 			retryAfter, ok := response.Header["X-Ratelimit-Retry-After"]
 			if !ok {
-				return nil, true, fmt.Errorf("Could not parse throttling header")
+				return nil, true, fmt.Errorf("could not parse throttling header")
 			}
 			if len(retryAfter) <= 0 {
-				return nil, true, fmt.Errorf("Could not parse throttling seconds")
+				return nil, true, fmt.Errorf("could not parse throttling seconds")
 			}
 			after, err := time.ParseDuration(retryAfter[0] + "s")
 			if err != nil || after > 5 {
@@ -284,7 +285,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		if response.StatusCode == 200 {
 			break
 		}
-		return nil, false, fmt.Errorf("Got an unexpected StatusCode %v", response)
+		return nil, false, fmt.Errorf("got an unexpected StatusCode %v", response)
 	}
 
 	contents, err := ioutil.ReadAll(response.Body)
@@ -296,7 +297,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 
 	err = json.Unmarshal(contents, &jsonObject)
 	if err != nil {
-		return nil, false, fmt.Errorf("Unable to unmarshal json %s", err)
+		return nil, false, fmt.Errorf("unable to unmarshal json %s", err)
 	}
 
 	return jsonObject, false, nil
@@ -320,7 +321,7 @@ func GetOptions(sec security.Security) (security.Security, error) {
 				continue
 			}
 			if err != nil {
-				return sec, fmt.Errorf("Error fetching TradeKing option data %s %s", sec.Ticker, err)
+				return sec, fmt.Errorf("error fetching TradeKing option data %s %s", sec.Ticker, err)
 			}
 			break
 		}
@@ -328,7 +329,7 @@ func GetOptions(sec security.Security) (security.Security, error) {
 
 	sec, err = parseMarketOptions(response, sec)
 	if err != nil {
-		return sec, fmt.Errorf("Error parsing market options %s", err)
+		return sec, fmt.Errorf("error parsing market options %s", err)
 	}
 
 	if cacheStale {
@@ -349,13 +350,13 @@ func GetStock(sec security.Security) (security.Security, bool, error) {
 		var retryable bool
 		response, retryable, err = webRequest(url)
 		if err != nil {
-			return sec, retryable, fmt.Errorf("Error fetching stock data %s %s", sec.Ticker, err)
+			return sec, retryable, fmt.Errorf("error fetching stock data %s %s", sec.Ticker, err)
 		}
 	}
 
 	sec, err = parseMarketExt(response, sec)
 	if err != nil {
-		return sec, false, fmt.Errorf("Error parsing market ext %s", err)
+		return sec, false, fmt.Errorf("error parsing market ext %s", err)
 	}
 
 	// Only update the cache if the price was populated.

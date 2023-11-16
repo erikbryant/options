@@ -2,12 +2,13 @@ package cboe
 
 import (
 	"fmt"
-	"github.com/erikbryant/options/csv"
-	"github.com/erikbryant/web"
 	"io"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/erikbryant/options/csv"
+	"github.com/erikbryant/web"
 )
 
 // getData downloads the CBOE weekly options data and saves it to a file.
@@ -24,13 +25,13 @@ func getData(file string) error {
 
 	out, err := os.Create(file)
 	if err != nil {
-		return fmt.Errorf("Unable to create CBOE data file %v", err)
+		return fmt.Errorf("unable to create CBOE data file %v", err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return fmt.Errorf("Unable to write to CBOE data file %v", err)
+		return fmt.Errorf("unable to write to CBOE data file %v", err)
 	}
 
 	return nil
@@ -42,12 +43,12 @@ func WeeklyOptions() ([]string, error) {
 
 	err := getData(file)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to download CBOE data %v", err)
+		return nil, fmt.Errorf("unable to download CBOE data %v", err)
 	}
 
 	records, err := csv.GetFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to open CBOE data %v", err)
+		return nil, fmt.Errorf("unable to open CBOE data %v", err)
 	}
 
 	var tickers []string

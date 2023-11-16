@@ -1,10 +1,11 @@
 package eoddata
 
 import (
-	"github.com/erikbryant/options/csv"
-	"github.com/erikbryant/options/utils"
 	"sort"
 	"strings"
+
+	"github.com/erikbryant/options/csv"
+	"github.com/erikbryant/options/utils"
 )
 
 // USEquities returns a sorted list of all known US equity symbols.

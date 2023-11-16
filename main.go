@@ -3,6 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"runtime/pprof"
+	"strings"
+	"time"
+
 	csvFmt "github.com/erikbryant/options/csv"
 	"github.com/erikbryant/options/finnhub"
 	"github.com/erikbryant/options/options"
@@ -10,10 +15,6 @@ import (
 	"github.com/erikbryant/options/tiingo"
 	"github.com/erikbryant/options/tradeking"
 	"github.com/erikbryant/options/utils"
-	"os"
-	"runtime/pprof"
-	"strings"
-	"time"
 )
 
 var (
@@ -129,9 +130,7 @@ func main() {
 
 	// Tickers to skip
 	skip := strings.Split(*skip, ",")
-	for _, val := range skipList {
-		skip = append(skip, val)
-	}
+	skip = append(skip, skipList...)
 
 	// Get the list of tickers to scan.
 	t = utils.Combine(t, strings.Split(*tickers, ","), skip)
