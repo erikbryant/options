@@ -2,11 +2,12 @@ package security
 
 import (
 	"fmt"
-	"github.com/erikbryant/options/csv"
-	"github.com/erikbryant/options/gdrive"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/erikbryant/options/csv"
+	"github.com/erikbryant/options/gdrive"
 )
 
 // Contract holds option data for a single expiration date.
@@ -500,6 +501,9 @@ func (security *Security) PrintCall(p params, call int, header bool, expiration 
 
 // Print writes a filtered set of options to CSV files.
 func Print(securities []Security, expiration string) {
+	// FIXME
+	return
+
 	for _, p := range []params{paramsCc, paramsEb} {
 
 		file := p.user + "_" + expiration + "_puts" + ".csv"

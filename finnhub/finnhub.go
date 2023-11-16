@@ -3,15 +3,16 @@ package finnhub
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/erikbryant/aes"
 	"github.com/erikbryant/options/cache"
 	"github.com/erikbryant/options/date"
 	"github.com/erikbryant/options/security"
 	"github.com/erikbryant/web"
-	"io/ioutil"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 var (
@@ -41,16 +42,16 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	for {
 		response, err = web.Request2(url, map[string]string{})
 		if err != nil {
-			return nil, false, fmt.Errorf("Error fetching symbol data %s", err)
+			return nil, false, fmt.Errorf("error fetching symbol data %s", err)
 		}
 		if response.StatusCode == 429 {
 			reset, err := strconv.ParseInt(response.Header["X-Ratelimit-Reset"][0], 10, 64)
 			if err != nil {
-				return nil, true, fmt.Errorf("Throttled")
+				return nil, true, fmt.Errorf("throttled")
 			}
 			seconds := reset - time.Now().Unix()
 			if seconds <= 0 || seconds > 10 {
-				return nil, true, fmt.Errorf("Throttled")
+				return nil, true, fmt.Errorf("throttled")
 			}
 			after, err := time.ParseDuration(fmt.Sprintf("%ds", seconds))
 			if err != nil || after < 5 {
@@ -64,7 +65,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		if response.StatusCode == 200 {
 			break
 		}
-		return nil, false, fmt.Errorf("Got an unexpected StatusCode %v", response)
+		return nil, false, fmt.Errorf("got an unexpected StatusCode %v", response)
 	}
 
 	contents, err := ioutil.ReadAll(response.Body)
@@ -76,7 +77,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 
 	err = json.Unmarshal(contents, &jsonObject)
 	if err != nil {
-		return nil, false, fmt.Errorf("Unable to unmarshal json %s", err)
+		return nil, false, fmt.Errorf("unable to unmarshal json %s", err)
 	}
 
 	return jsonObject, false, nil
@@ -88,18 +89,18 @@ func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 
 	earningsCalendar, ok := m["earningsCalendar"]
 	if !ok {
-		return nil, fmt.Errorf("Unable to parse earningsCalendar object")
+		return nil, fmt.Errorf("unable to parse earningsCalendar object")
 	}
 
 	for _, val := range earningsCalendar.([]interface{}) {
 		symbol, ok := val.(map[string]interface{})["symbol"]
 		if !ok {
-			return nil, fmt.Errorf("Unable to parse symbol object")
+			return nil, fmt.Errorf("unable to parse symbol object")
 		}
 
 		date, ok := val.(map[string]interface{})["date"]
 		if !ok {
-			return nil, fmt.Errorf("Unable to parse date object")
+			return nil, fmt.Errorf("unable to parse date object")
 		}
 
 		earnings[symbol.(string)] = date.(string)
@@ -112,24 +113,24 @@ func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 func parseQuote(m map[string]interface{}, sec security.Security) (security.Security, error) {
 	t, ok := m["t"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse quote object timestamp")
+		return sec, fmt.Errorf("unable to parse quote object timestamp")
 	}
 
 	c, ok := m["c"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse quote object close")
+		return sec, fmt.Errorf("unable to parse quote object close")
 	}
 
 	sec.Price, ok = c.(float64)
 	if !ok {
-		return sec, fmt.Errorf("Unable to convert c to float64 %v", c)
+		return sec, fmt.Errorf("unable to convert c to float64 %v", c)
 	}
 
 	now := time.Now()
 	quoteDate := time.Unix(int64(t.(float64)), 0)
 	sinceClose := date.TimeSinceClose(now)
 	if now.Sub(quoteDate) > (sinceClose + 6*time.Hour + 30*time.Minute) {
-		return sec, fmt.Errorf("Security price is stale %s %f %d %v %v %v", sec.Ticker, sec.Price, int64(t.(float64)), quoteDate, sinceClose, now.Sub(quoteDate))
+		return sec, fmt.Errorf("security price is stale %s %f %d %v %v %v", sec.Ticker, sec.Price, int64(t.(float64)), quoteDate, sinceClose, now.Sub(quoteDate))
 	}
 
 	return sec, nil
@@ -139,23 +140,23 @@ func parseQuote(m map[string]interface{}, sec security.Security) (security.Secur
 func parseMetric(m map[string]interface{}, sec security.Security) (security.Security, error) {
 	mMetric, ok := m["metric"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse metric object")
+		return sec, fmt.Errorf("unable to parse metric object")
 	}
 
 	metric, ok := mMetric.(map[string]interface{})
 	if !ok {
-		return sec, fmt.Errorf("Unable to decode metric object")
+		return sec, fmt.Errorf("unable to decode metric object")
 	}
 
 	pe, ok := metric["peBasicExclExtraTTM"]
 	if !ok {
-		return sec, fmt.Errorf("Unable to parse metric object peBasicExclExtraTTM")
+		return sec, fmt.Errorf("unable to parse metric object peBasicExclExtraTTM")
 	}
 
 	if pe != nil {
 		sec.PE, ok = pe.(float64)
 		if !ok {
-			return sec, fmt.Errorf("Unable to convert pe to float64 %v", pe)
+			return sec, fmt.Errorf("unable to convert pe to float64 %v", pe)
 		}
 	}
 
@@ -166,10 +167,7 @@ func parseMetric(m map[string]interface{}, sec security.Security) (security.Secu
 func EarningDates(start, end string) (map[string]string, error) {
 	today := time.Now().Format("20060102")
 
-	s := start[0:4] + "-" + start[4:6] + "-" + start[6:8]
-	e := end[0:4] + "-" + end[4:6] + "-" + end[6:8]
-
-	url := "https://finnhub.io/api/v1/calendar/earnings?from=" + s + "&to=" + e
+	url := "https://finnhub.io/api/v1/calendar/earnings?from=" + start + "&to=" + end
 
 	response, err := cache.Read(today + url)
 	if err != nil {
@@ -180,7 +178,7 @@ func EarningDates(start, end string) (map[string]string, error) {
 				continue
 			}
 			if err != nil {
-				return nil, fmt.Errorf("Error fetching earnings dates %s", err)
+				return nil, fmt.Errorf("error fetching earnings dates %s", err)
 			}
 			break
 		}
@@ -188,7 +186,7 @@ func EarningDates(start, end string) (map[string]string, error) {
 
 	dates, err := parseEarnings(response)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing earning dates %s", err)
+		return nil, fmt.Errorf("error parsing earning dates %s", err)
 	}
 
 	cache.Update(today+url, response)
@@ -208,13 +206,13 @@ func getQuote(sec security.Security) (security.Security, bool, error) {
 		var retryable bool
 		response, retryable, err = webRequest(url)
 		if err != nil {
-			return sec, retryable, fmt.Errorf("Error fetching quote data %s %s", sec.Ticker, err)
+			return sec, retryable, fmt.Errorf("error fetching quote data %s %s", sec.Ticker, err)
 		}
 	}
 
 	sec, err = parseQuote(response, sec)
 	if err != nil {
-		return sec, false, fmt.Errorf("Error parsing quote %s", err)
+		return sec, false, fmt.Errorf("error parsing quote %s", err)
 	}
 
 	// Only update the cache if the price was populated.
@@ -237,13 +235,13 @@ func getMetric(sec security.Security) (security.Security, bool, error) {
 		var retryable bool
 		response, retryable, err = webRequest(url)
 		if err != nil {
-			return sec, retryable, fmt.Errorf("Error fetching metric data %s %s", sec.Ticker, err)
+			return sec, retryable, fmt.Errorf("error fetching metric data %s %s", sec.Ticker, err)
 		}
 	}
 
 	sec, err = parseMetric(response, sec)
 	if err != nil {
-		return sec, false, fmt.Errorf("Error parsing metric %s", err)
+		return sec, false, fmt.Errorf("error parsing metric %s", err)
 	}
 
 	// Only update the cache if the price was populated.

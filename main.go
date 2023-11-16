@@ -3,17 +3,19 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"runtime/pprof"
+	"strings"
+	"time"
+
 	csvFmt "github.com/erikbryant/options/csv"
 	"github.com/erikbryant/options/finnhub"
+	"github.com/erikbryant/options/marketData"
 	"github.com/erikbryant/options/options"
 	"github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/tiingo"
 	"github.com/erikbryant/options/tradeking"
 	"github.com/erikbryant/options/utils"
-	"os"
-	"runtime/pprof"
-	"strings"
-	"time"
 )
 
 var (
@@ -90,6 +92,7 @@ func main() {
 	tiingo.Init(*passPhrase)
 	tradeking.Init(*passPhrase)
 	finnhub.Init(*passPhrase)
+	marketData.Init(*passPhrase)
 
 	if *regenerate {
 		_, err := options.FindSecuritiesWithOptions(*useFile)
@@ -105,7 +108,7 @@ func main() {
 		return
 	}
 
-	err := options.Init(time.Now().Format("20060102"), *expiration)
+	err := options.Init(time.Now().Format("2006-01-02"), *expiration)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -129,15 +132,13 @@ func main() {
 
 	// Tickers to skip
 	skip := strings.Split(*skip, ",")
-	for _, val := range skipList {
-		skip = append(skip, val)
-	}
+	skip = append(skip, skipList...)
 
 	// Get the list of tickers to scan.
 	t = utils.Combine(t, strings.Split(*tickers, ","), skip)
 
 	// Load underlying data for all tickers.
-	securities, err := options.Securities(t)
+	securities, err := options.Securities(t, *expiration)
 	if err != nil {
 		fmt.Println("Error getting security data", err)
 		return

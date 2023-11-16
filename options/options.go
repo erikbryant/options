@@ -2,15 +2,17 @@ package options
 
 import (
 	"fmt"
-	"github.com/erikbryant/options/cboe"
-	"github.com/erikbryant/options/eoddata"
-	"github.com/erikbryant/options/finnhub"
-	"github.com/erikbryant/options/security"
-	"github.com/erikbryant/options/tradeking"
-	"github.com/erikbryant/options/utils"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/erikbryant/options/cboe"
+	"github.com/erikbryant/options/eoddata"
+	"github.com/erikbryant/options/finnhub"
+	"github.com/erikbryant/options/marketData"
+	"github.com/erikbryant/options/security"
+	"github.com/erikbryant/options/tradeking"
+	"github.com/erikbryant/options/utils"
 )
 
 var (
@@ -24,12 +26,12 @@ func Init(start, end string) (err error) {
 }
 
 // Securities accumulates stock/option data for the given tickers and returns it in a list of sec.
-func Securities(tickers []string) ([]security.Security, error) {
+func Securities(tickers []string, expiration string) ([]security.Security, error) {
 	var securities []security.Security
 
 	for _, ticker := range tickers {
 		fmt.Printf("\r%s    ", ticker)
-		sec, err := getSecurity(ticker)
+		sec, err := getSecurity(ticker, expiration)
 		if err != nil {
 			fmt.Printf("Error getting security data %s\n", err)
 			continue
@@ -77,13 +79,13 @@ func getStock(sec security.Security) (security.Security, error) {
 }
 
 // getSecurity accumulates stock/option data for the given ticker and returns it in a sec.
-func getSecurity(ticker string) (security.Security, error) {
+func getSecurity(ticker, expiration string) (security.Security, error) {
 	var sec security.Security
 
 	sec.Ticker = ticker
 
 	// Fetch data
-	sec, err := tradeking.GetOptions(sec)
+	sec, err := marketData.GetOptions(sec, expiration)
 	if err != nil {
 		return sec, fmt.Errorf("Error getting options %s %s", sec.Ticker, err)
 	}
