@@ -33,7 +33,7 @@ passPhrase=$1
 expiration=$2
 
 # Make sure we are using the latest code.
-git pull
+git pull --quiet
 
 # Clean old files out of the cache. They are only good for a day.
 mkdir -p web-request-cache
