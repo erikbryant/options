@@ -268,7 +268,6 @@ func GetOptions(sec security.Security, expiration string) (security.Security, er
 	if err != nil {
 		return sec, fmt.Errorf("error parsing marketData options %s", err)
 	}
-	// }
 
 	return sec, nil
 }
