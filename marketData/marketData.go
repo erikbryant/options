@@ -110,6 +110,11 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 		return sec, err
 	}
 
+	updated, err := int64s(m, "updated")
+	if err != nil {
+		return sec, err
+	}
+
 	sec.Price = underlyingPrice[0]
 
 	prev := strike[0]
@@ -138,6 +143,8 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 		t := time.Unix(expiration[i], 0)
 		contract.Expiration = t.Format("2006-01-02")
+
+		contract.LastTradeDate = time.Unix(updated[i], 0)
 
 		switch s.(string) {
 		case "call":

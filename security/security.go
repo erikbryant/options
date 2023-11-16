@@ -19,7 +19,7 @@ type Contract struct {
 	Ask           float64
 	Expiration    string
 	LastTradeDate time.Time
-	Size          int
+	LotSize       int
 	OpenInterest  int64
 	Delta         float64
 	IV            float64
@@ -280,7 +280,7 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 		c = fmt.Sprintf("%8s", inTheMoney)
 	case "lotSize":
 		h = fmt.Sprintf("%8s", "Lot Size")
-		c = fmt.Sprintf("%8d", contract.Size)
+		c = fmt.Sprintf("%8d", contract.LotSize)
 	case "KellyCriterion":
 		// Percent of portfolio to risk on a given investment
 		// We use delta as the win factor

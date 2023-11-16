@@ -141,13 +141,13 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 		if !ok {
 			return sec, fmt.Errorf("unable to parse contract_size")
 		}
-		contract.Size, err = strconv.Atoi(contractSize.(string))
+		contract.LotSize, err = strconv.Atoi(contractSize.(string))
 		if err != nil {
 			// Sometimes the size is 'na'. That's OK. Anything else is an error.
 			if contractSize.(string) != "na" {
 				return sec, err
 			}
-			contract.Size = -1
+			contract.LotSize = -1
 		}
 
 		date, ok := val.(map[string]interface{})["date"]
