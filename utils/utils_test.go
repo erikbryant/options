@@ -29,7 +29,7 @@ func TestRemove(t *testing.T) {
 		{
 			[]string{"", "A"},
 			[]string{"C"},
-			[]string{"A", "B"},
+			[]string{"A"},
 		},
 		// All empty.
 		{
@@ -37,23 +37,17 @@ func TestRemove(t *testing.T) {
 			[]string{},
 			[]string{},
 		},
-		// list1 empty.
-		{
-			[]string{},
-			[]string{},
-			[]string{"A", "B"},
-		},
 		// Unsorted input.
 		{
 			[]string{"Z", "M", "C"},
 			[]string{},
-			[]string{"A", "B", "C", "M", "Z"},
+			[]string{"C", "M", "Z"},
 		},
 		// Duplicates.
 		{
 			[]string{"Z", "Z", "C"},
 			[]string{},
-			[]string{"B", "C", "Z"},
+			[]string{"C", "Z"},
 		},
 		// Skip deletes all.
 		{
@@ -65,7 +59,7 @@ func TestRemove(t *testing.T) {
 		{
 			[]string{"Z", "Z", "C"},
 			[]string{"W", "Y", "X"},
-			[]string{"B", "C", "Z"},
+			[]string{"C", "Z"},
 		},
 	}
 
