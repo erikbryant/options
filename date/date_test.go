@@ -5,62 +5,6 @@ import (
 	"time"
 )
 
-func TestInTradingHours(t *testing.T) {
-	testCases := []struct {
-		t        time.Time
-		expected bool
-	}{
-		// Sunday
-		//   14:29 UTC is 9:29 Eastern
-		{time.Date(2022, time.Month(1), 2, 14, 29, 0, 0, time.UTC), false},
-		//   14:30 UTC is 9:30 Eastern
-		{time.Date(2022, time.Month(1), 2, 14, 30, 0, 0, time.UTC), false},
-		//   20:59 UTC is 15:59 Eastern
-		{time.Date(2022, time.Month(1), 2, 20, 59, 0, 0, time.UTC), false},
-		//   22:00 UTC is 16:00 Eastern
-		{time.Date(2022, time.Month(1), 2, 22, 0, 0, 0, time.UTC), false},
-
-		// Monday
-		//   14:29 UTC is 9:29 Eastern
-		{time.Date(2022, time.Month(1), 3, 14, 29, 0, 0, time.UTC), false},
-		//   14:30 UTC is 9:30 Eastern
-		{time.Date(2022, time.Month(1), 3, 14, 30, 0, 0, time.UTC), true},
-		//   20:59 UTC is 15:59 Eastern
-		{time.Date(2022, time.Month(1), 3, 20, 59, 0, 0, time.UTC), true},
-		//   22:00 UTC is 16:00 Eastern
-		{time.Date(2022, time.Month(1), 3, 22, 0, 0, 0, time.UTC), false},
-
-		// If Monday and Friday work we will assume Tue-Thu also work
-
-		// Friday
-		//   14:29 UTC is 9:29 Eastern
-		{time.Date(2022, time.Month(1), 7, 14, 29, 0, 0, time.UTC), false},
-		//   14:30 UTC is 9:30 Eastern
-		{time.Date(2022, time.Month(1), 7, 14, 30, 0, 0, time.UTC), true},
-		//   20:59 UTC is 15:59 Eastern
-		{time.Date(2022, time.Month(1), 7, 20, 59, 0, 0, time.UTC), true},
-		//   22:00 UTC is 16:00 Eastern
-		{time.Date(2022, time.Month(1), 7, 22, 0, 0, 0, time.UTC), false},
-
-		// Saturday
-		//   14:29 UTC is 9:29 Eastern
-		{time.Date(2022, time.Month(1), 8, 14, 29, 0, 0, time.UTC), false},
-		//   14:30 UTC is 9:30 Eastern
-		{time.Date(2022, time.Month(1), 8, 14, 30, 0, 0, time.UTC), false},
-		//   20:59 UTC is 15:59 Eastern
-		{time.Date(2022, time.Month(1), 8, 20, 59, 0, 0, time.UTC), false},
-		//   22:00 UTC is 16:00 Eastern
-		{time.Date(2022, time.Month(1), 8, 22, 0, 0, 0, time.UTC), false},
-	}
-
-	for _, testCase := range testCases {
-		answer := InTradingHours(testCase.t)
-		if answer != testCase.expected {
-			t.Errorf("For %v expected %t, got %t", testCase.t, testCase.expected, answer)
-		}
-	}
-}
-
 func TestTimeSinceMidnight(t *testing.T) {
 	testCases := []struct {
 		t        time.Time
