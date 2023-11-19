@@ -2,17 +2,11 @@ package options
 
 import (
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
-	"github.com/erikbryant/options/cboe"
-	"github.com/erikbryant/options/eoddata"
 	"github.com/erikbryant/options/finnhub"
 	"github.com/erikbryant/options/marketData"
 	"github.com/erikbryant/options/security"
-	"github.com/erikbryant/options/tradeking"
-	"github.com/erikbryant/options/utils"
 )
 
 var (
@@ -25,53 +19,17 @@ func Init(start, end string) (err error) {
 	return
 }
 
-// Securities accumulates stock/option data for the given tickers and returns it in a list of sec.
-func Securities(tickers []string, expiration string) ([]security.Security, error) {
-	var securities []security.Security
-
-	for _, ticker := range tickers {
-		fmt.Printf("\r%s    ", ticker)
-		sec, err := getSecurity(ticker, expiration)
-		if err != nil {
-			fmt.Printf("Error getting security data %s\n", err)
-			continue
-		}
-
-		if !sec.HasOptions() {
-			continue
-		}
-
-		securities = append(securities, sec)
-	}
-
-	fmt.Printf("\r%d of %d tickers loaded\n\n", len(securities), len(tickers))
-
-	return securities, nil
-}
-
-// primary indicates which source to favor. If it starts throttling we switch to the other.
-var primary = "finnhub"
-
-// getStock retrieves stock data for the given ticker. It load balances across multiple providers.
+// getStock retrieves stock data for the given ticker, retrying if possible
 func getStock(sec security.Security) (security.Security, error) {
 	var retryable bool
 	var err error
 
 	for {
-		if primary == "finnhub" {
-			sec, retryable, err = finnhub.GetStock(sec)
-			if err == nil || !retryable {
-				break
-			}
-			fmt.Println("Finnhub is throttling, switching to TradeKing")
-			primary = "tradeking"
-		}
-		sec, retryable, err = tradeking.GetStock(sec)
+		sec, retryable, err = finnhub.GetStock(sec)
 		if err == nil || !retryable {
 			break
 		}
-		fmt.Println("TradeKing is throttling, switching to Finnhub")
-		primary = "finnhub"
+		fmt.Println("Finnhub is throttling, sleeping...")
 		time.Sleep(6 * time.Second)
 	}
 
@@ -117,69 +75,26 @@ func getSecurity(ticker, expiration string) (security.Security, error) {
 	return sec, nil
 }
 
-// FindSecuritiesWithOptions re-scans all known securities to see which have options and writes them to 'useFile.options.csv'.
-func FindSecuritiesWithOptions(useFile string) ([]string, error) {
-	securities, err := eoddata.USEquities(useFile)
-	if err != nil {
-		return nil, fmt.Errorf("error loading US equity list %s", err)
-	}
+// Securities accumulates stock/option data for the given tickers and returns it in a list of sec.
+func Securities(tickers []string, expiration string) ([]security.Security, error) {
+	var securities []security.Security
 
-	securities2, err := cboe.WeeklyOptions()
-	if err != nil {
-		return nil, fmt.Errorf("error loading CBOE weekly options list %s", err)
-	}
-
-	securities = utils.Combine(securities, securities2, []string{})
-
-	outFile := strings.Replace(useFile, ".csv", ".options.csv", 1)
-	f, err := os.Create(outFile)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	_, err = f.WriteString("Symbol\n")
-	if err != nil {
-		return nil, err
-	}
-
-	options := []string{}
-	for _, key := range securities {
-		var sec security.Security
-		sec.Ticker = key
-		sec, err = tradeking.GetOptions(sec)
+	for _, ticker := range tickers {
+		fmt.Printf("\r%s    ", ticker)
+		sec, err := getSecurity(ticker, expiration)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Printf("Error getting security data %s\n", err)
 			continue
 		}
 
 		if !sec.HasOptions() {
-			fmt.Println("Security does not have options", sec.Ticker)
 			continue
 		}
 
-		// We are looking for weekly (or more frequent) options, so the period
-		// should be 7. But, if the exchange is closed on a Friday then the
-		// expiration moves to Thursday. That means there are now 8 days between
-		// it and the next expiration.
-		period, err := sec.ExpirationPeriod()
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		if period > 8 {
-			fmt.Println("Security expiration dates are too infrequent", sec.Ticker, period)
-			continue
-		}
-
-		options = append(options, key)
-		fmt.Println(key)
-
-		_, err = f.WriteString(key + "\n")
-		if err != nil {
-			return nil, err
-		}
+		securities = append(securities, sec)
 	}
 
-	return options, nil
+	fmt.Printf("\r%d of %d tickers loaded\n\n", len(securities), len(tickers))
+
+	return securities, nil
 }

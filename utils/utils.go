@@ -16,15 +16,11 @@ func IsLetter(s string) bool {
 	return true
 }
 
-// Combine merges two lists into one, removes any elements that are in skip, and returns the sorted remainder.
-func Combine(list1, list2 []string, skip []string) []string {
+// Remove returns list with any entries from skip removed
+func Remove(list, skip []string) []string {
 	m := make(map[string]int)
 
-	for _, val := range list1 {
-		m[val] = 1
-	}
-
-	for _, val := range list2 {
+	for _, val := range list {
 		m[val] = 1
 	}
 

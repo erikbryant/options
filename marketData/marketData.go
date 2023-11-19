@@ -208,6 +208,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 }
 
 func cachedFetch(url string) (map[string]interface{}, error) {
+	// FIXME
 	today := time.Now().Format("20060102")
 	today = ""
 
@@ -239,17 +240,6 @@ func fetch(url string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	// r := response
-	// for r["next_url"] != nil {
-	// 	fmt.Println("next_url:", r["next_url"])
-	// 	r, _ = cachedFetch(r["next_url"].(string))
-	// 	fmt.Println(r)
-	// 	for _, val := range r {
-	// 		t = append(t, val)
-	// 	}
-	// 	fmt.Println(".")
-	// }
-
 	return response, nil
 }
 
@@ -257,7 +247,7 @@ func fetch(url string) (map[string]interface{}, error) {
 func GetOptions(sec security.Security, expiration string) (security.Security, error) {
 	url := "https://api.marketdata.app/v1/options/chain/" + sec.Ticker + "/"
 	url += "?expiration=" + expiration
-	url += "&strikeLimit=50"
+	url += "&strikeLimit=10"
 
 	response, err := fetch(url)
 	if err != nil {

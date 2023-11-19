@@ -16,17 +16,6 @@ function usage() {
   exit
 }
 
-# If there is a USE_* file, regenerate the list of interesting options (options.csv).
-function regenerate() {
-  mv ~/Downloads/USE_*.csv . || true
-  count=$( find . -name "USE_20[0-9][0-9][0-9][0-9][0-9][0-9].csv" -depth 1 | wc -l )
-  [[ ${count} -eq 0 ]] && return
-  [[ ${count} -gt 1 ]] && echo "ERROR: Too many USE_*.csv files" && exit 1
-  go run main.go -passPhrase ${passPhrase} -regenerate -useFile USE_*.csv
-  mv USE_*.options.csv options.csv || true
-  git --no-pager diff --unified=0 --color=always options.csv | egrep -v "@@"
-}
-
 [[ $# -ne 2 ]] && usage
 
 passPhrase=$1
@@ -37,7 +26,8 @@ git pull --quiet
 
 # Clean old files out of the cache. They are only good for a day.
 mkdir -p web-request-cache
-find web-request-cache -type f -mmin +1440 -delete
+echo "WARNING!!!! Not deleting the web cache. Hope this is ok..."
+# find web-request-cache -type f -mmin +1440 -delete
 
 # Clean out any old options runs
 find . -name "??_*_puts.csv" -depth 1 -delete
@@ -45,7 +35,5 @@ find . -name "??_*_calls.csv" -depth 1 -delete
 
 # Clean out expired tokens. They are only good for around a week.
 find . -type f -name token.json -depth 1 -mmin +12960 -delete
-
-regenerate
 
 go run main.go -passPhrase ${passPhrase} -expiration ${expiration}
