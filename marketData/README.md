@@ -12,8 +12,6 @@ Dashboard, including quota used: [Dashboard](https://www.marketdata.app/dashboar
   * Dynamically set the number of strikes to get per each symbol.
   * Eliminate more symbols?
   * Use THETA or BID to know when to stop requesting strikes.
-* In marketData.GetOptions(), instead of a single, specific expiration, get all expirations up to and including that passed-in expiration date.
-* Fix the logic that determines which symbols have weekly (or less) expirations. Run it and update options.csv
 * Uncomment the `regenerate` line that deletes old entries from the web cache.
 * Cache improvements
   * Make cahcing smarter about when to update or not.

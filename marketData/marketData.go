@@ -63,6 +63,21 @@ func int64s(m map[string]interface{}, key string) ([]int64, error) {
 	return vals, nil
 }
 
+func strings(m map[string]interface{}, key string) ([]string, error) {
+	vals := []string{}
+
+	data, ok := m[key].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unable to convert %s", key)
+	}
+
+	for _, d := range data {
+		vals = append(vals, d.(string))
+	}
+
+	return vals, nil
+}
+
 // parseMarketOptions extracts salient information from the raw Trade King format.
 func parseMarketOptions(m map[string]interface{}, sec security.Security) (security.Security, error) {
 	underlyingPrice, err := floats(m, "underlyingPrice")
@@ -153,7 +168,14 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	var response *http.Response
 	var err error
 
-	url += "&token=" + authToken
+	if url[len(url)-1] == '/' {
+		url += "?"
+	} else {
+		url += "&"
+	}
+	url += "token=" + authToken
+
+	fmt.Println(url)
 
 	for {
 		response, err = web.Request2(url, map[string]string{})
@@ -179,6 +201,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		if response.StatusCode == 200 || response.StatusCode == 203 {
 			break
 		}
+		fmt.Println(url)
 		return nil, false, fmt.Errorf("got an unexpected StatusCode %v", response)
 	}
 
@@ -198,11 +221,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 }
 
 func cachedFetch(url string) (map[string]interface{}, error) {
-	// FIXME
-	today := time.Now().Format("20060102")
-	today = ""
-
-	response, err := cache.Read(today + url)
+	response, err := cache.Read(url)
 	if err == nil {
 		return response, nil
 	}
@@ -219,7 +238,7 @@ func cachedFetch(url string) (map[string]interface{}, error) {
 		break
 	}
 
-	cache.Update(today+url, response)
+	cache.Update(url, response)
 
 	return response, nil
 }
@@ -233,20 +252,69 @@ func fetch(url string) (map[string]interface{}, error) {
 	return response, nil
 }
 
-// GetOptions looks up a single ticker symbol and returns its options.
-func GetOptions(sec security.Security, expiration string) (security.Security, error) {
-	url := "https://api.marketdata.app/v1/options/chain/" + sec.Ticker + "/"
-	url += "?expiration=" + expiration
-	url += "&strikeLimit=10"
+// leq returns true if date1 is <= date2 AND date1 is not in the past
+func leq(date1, date2 string) bool {
+	d1, err := time.Parse("2006-01-02", date1)
+	if err != nil {
+		panic(err)
+	}
+	d2, err := time.Parse("2006-01-02", date2)
+	if err != nil {
+		panic(err)
+	}
+
+	return (d1.Before(d2) || d1.Equal(d2)) && d1.After(time.Now())
+}
+
+func expirationsUpTo(ticker, latestExpiration string) ([]string, error) {
+	url := "https://api.marketdata.app/v1/options/expirations/" + ticker + "/"
 
 	response, err := fetch(url)
 	if err != nil {
-		return sec, fmt.Errorf("error concatenating marketData options %s %s", sec.Ticker, err)
+		return nil, fmt.Errorf("error fetching %s expirations %s", ticker, err)
 	}
 
-	sec, err = parseMarketOptions(response, sec)
+	dates, err := strings(response, "expirations")
 	if err != nil {
-		return sec, fmt.Errorf("error parsing marketData options %s", err)
+		return nil, fmt.Errorf("error parsing %s expirations %s", ticker, err)
+	}
+
+	expirations := []string{}
+
+	for _, date := range dates {
+		if leq(date, latestExpiration) {
+			expirations = append(expirations, date)
+		}
+	}
+
+	return expirations, nil
+}
+
+// GetOptions looks up a single ticker symbol and returns its options.
+func GetOptions(sec security.Security, latestExpiration string) (security.Security, error) {
+	expirations, err := expirationsUpTo(sec.Ticker, latestExpiration)
+	if err != nil {
+		return sec, fmt.Errorf("error getting %s expirations %s", sec.Ticker, err)
+	}
+
+	if len(expirations) != 1 {
+		fmt.Println(latestExpiration, expirations)
+	}
+
+	for _, expiration := range expirations {
+		url := "https://api.marketdata.app/v1/options/chain/" + sec.Ticker + "/"
+		url += "?expiration=" + expiration
+		url += "&strikeLimit=10"
+
+		response, err := fetch(url)
+		if err != nil {
+			return sec, fmt.Errorf("error concatenating marketData options %s %s", sec.Ticker, err)
+		}
+
+		sec, err = parseMarketOptions(response, sec)
+		if err != nil {
+			return sec, fmt.Errorf("error parsing marketData options %s", err)
+		}
 	}
 
 	return sec, nil
