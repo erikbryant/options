@@ -11,7 +11,6 @@ import (
 	"github.com/erikbryant/options/options"
 	"github.com/erikbryant/options/security"
 	"github.com/erikbryant/options/tiingo"
-	"github.com/erikbryant/options/tradeking"
 	"github.com/erikbryant/options/utils"
 )
 
@@ -68,7 +67,6 @@ func main() {
 	}
 
 	tiingo.Init(*passPhrase)
-	tradeking.Init(*passPhrase)
 	finnhub.Init(*passPhrase)
 	marketData.Init(*passPhrase)
 

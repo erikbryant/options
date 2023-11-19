@@ -19,28 +19,6 @@ func equal(list1, list2 []string) bool {
 	return true
 }
 
-func TestIsLetter(t *testing.T) {
-	testCases := []struct {
-		s        string
-		expected bool
-	}{
-		{"", true},
-		{"abc", true},
-		{"ABC", true},
-		{"123", false},
-		{"ab12", false},
-		{"a-b", false},
-		{"IBM.U", false},
-	}
-
-	for _, testCase := range testCases {
-		answer := IsLetter(testCase.s)
-		if answer != testCase.expected {
-			t.Errorf("For %v expected %t, got %t", testCase.s, testCase.expected, answer)
-		}
-	}
-}
-
 func TestRemove(t *testing.T) {
 	testCases := []struct {
 		list     []string

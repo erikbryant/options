@@ -2,19 +2,7 @@ package utils
 
 import (
 	"sort"
-	"unicode"
 )
-
-// IsLetter returns true if all chars in string are alpha, false otherwise.
-func IsLetter(s string) bool {
-	for _, char := range s {
-		if !unicode.IsLetter(char) {
-			return false
-		}
-	}
-
-	return true
-}
 
 // Remove returns list with any entries from skip removed
 func Remove(list, skip []string) []string {
