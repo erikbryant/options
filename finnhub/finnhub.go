@@ -18,16 +18,26 @@ import (
 var (
 	cipherAuthToken = "GDrwdFOt/zTS12HUuCYE82Xjdzoa5EYOT9e377XNYc0w2St/CNQ0M/jOZorYzU1G"
 	authToken       = ""
+	earnings        map[string]string
 )
 
 // Init initializes the internal state of the package.
-func Init(passPhrase string) {
+func Init(passPhrase, end string) {
 	var err error
 
 	authToken, err = aes.Decrypt(cipherAuthToken, passPhrase)
 	if err != nil {
 		panic("Incorrect passphrase for FinnHub")
 	}
+
+	earnings, err = earningDates(end)
+	if err != nil {
+		panic("Unable to get earnings dates")
+	}
+}
+
+func Earnings(symbol string) string {
+	return earnings[symbol]
 }
 
 func webRequest(url string) (map[string]interface{}, bool, error) {
@@ -163,9 +173,11 @@ func parseMetric(m map[string]interface{}, sec security.Security) (security.Secu
 	return sec, nil
 }
 
-// EarningDates finds all earning announcement dates in a given date range.
-func EarningDates(start, end string) (map[string]string, error) {
+// earningDates returns all earning announcement dates from now to the end date
+func earningDates(end string) (map[string]string, error) {
 	today := time.Now().Format("20060102")
+
+	start := time.Now().Format("2006-01-02")
 
 	url := "https://finnhub.io/api/v1/calendar/earnings?from=" + start + "&to=" + end
 

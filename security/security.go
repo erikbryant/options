@@ -2,12 +2,10 @@ package security
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/erikbryant/options/csv"
-	"github.com/erikbryant/options/gdrive"
 )
 
 // Contract holds option data for a single expiration date.
@@ -55,106 +53,24 @@ type Security struct {
 }
 
 // params holds the parameters for each user's output preferences.
-type params struct {
-	maxStrike       float64
-	minYield        float64
-	minSafetySpread float64
-	minCallSpread   float64
-	minIfCalled     float64
-	itm             bool
-	cCols           []string
-	pCols           []string
-	user            string
+type Params struct {
+	Initials        string
+	MaxStrike       float64
+	MinYield        float64
+	MinSafetySpread float64
+	MinCallSpread   float64
+	MinIfCalled     float64
+	Itm             bool
+	CallCols        []string
+	PutCols         []string
 }
-
-var (
-	paramsCc = params{
-		100.0,
-		0.0,
-		0.0,
-		0.0,
-		0.0,
-		true,
-		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "outlay"},
-		[]string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "exposure"},
-		"cc",
-	}
-
-	paramsEb = params{
-		50.0,
-		1.5,
-		10.0,
-		20.0,
-		0.0,
-		true,
-		[]string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "outlay", "premium"},
-		[]string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "exposure", "premium"},
-		"eb",
-	}
-)
 
 // HasOptions returns whether the security has options.
 func (security *Security) HasOptions() bool {
 	return len(security.Puts) != 0 && len(security.Calls) != 0 && len(security.Strikes) != 0
 }
 
-// ExpirationPeriod tries to determine the time between expiration dates.
-func (security *Security) ExpirationPeriod() (int, error) {
-	uniques := make(map[string]int)
-
-	for _, put := range security.Puts {
-		uniques[put.Expiration] = 1
-	}
-
-	var expirations []string
-
-	for expiration := range uniques {
-		expirations = append(expirations, expiration)
-	}
-
-	sort.Strings(expirations)
-
-	// Look for there to be a lot of expiration dates. If there are only a few
-	// then we cannot get an accurate period.
-	// The choice of which dates to look at is arbitrary, but as long as we are
-	// looking out at least a month we are sure to be fine.
-	// But, don't look out too far. We might get into LEAPS or something with
-	// very far expirations.
-
-	const minExpirations = 5
-
-	if len(expirations) < minExpirations {
-		return -1, fmt.Errorf("not enough expirations to determine period %s %v", security.Ticker, expirations)
-	}
-
-	var max = 0
-	var prev time.Time
-	var next time.Time
-	var err error
-
-	prev, err = time.Parse("20060102", expirations[0])
-	if err != nil {
-		return -1, fmt.Errorf("could not parse first expiration date %s %s", err, expirations[0])
-	}
-
-	for i := 1; i < minExpirations; i++ {
-		next, err = time.Parse("20060102", expirations[i])
-		if err != nil {
-			return -1, fmt.Errorf("could not parse next expiration date %s %s", err, expirations[i])
-		}
-
-		days := int(next.Sub(prev).Hours() / 24)
-		if days > max {
-			max = days
-		}
-
-		prev = next
-	}
-
-	return max, nil
-}
-
-// colName returns the column name that a spreadsheet would give it.
+// colName returns the column name that a spreadsheet would give it
 func colName(cols []string, col string) string {
 	for i := range cols {
 		if cols[i] == col {
@@ -165,7 +81,7 @@ func colName(cols []string, col string) string {
 	return "!" + col
 }
 
-// CallSpread returns the relative distance to the highest OTM bid that is non-zero.
+// CallSpread returns the relative distance to the highest OTM bid that is non-zero
 func (security *Security) CallSpread(expiration string) float64 {
 	maxStrike := 0.0
 
@@ -185,7 +101,7 @@ func (security *Security) CallSpread(expiration string) float64 {
 	return 100.0 * (maxStrike - security.Price) / security.Price
 }
 
-// cellPut returns a header and cell string formatted for printing.
+// cellPut returns a header and cell string formatted for printing
 func (security *Security) cellPut(cols []string, col string, contract Contract, expiration string) (string, string) {
 	h := fmt.Sprintf("col not found: %s", col)
 	c := fmt.Sprintf("col not found: %s", col)
@@ -251,7 +167,7 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 		h = fmt.Sprintf("%8s", "Age")
 		// TODO: If it is the weekend, then make the threshold for
 		// printing higher (i.e., count these as business days, not
-		// calendar days).
+		// calendar days)
 		var lastTrade string
 		if contract.LastTradeDays >= 2 {
 			lastTrade = fmt.Sprintf("%dd", contract.LastTradeDays)
@@ -282,13 +198,13 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 		h = fmt.Sprintf("%8s", "Lot Size")
 		c = fmt.Sprintf("%8d", contract.LotSize)
 	case "KellyCriterion":
-		// Percent of portfolio to risk on a given investment
-		// We use delta as the win factor
-		// Win factors below 0.5 result in negative percents. Filter those away.
+		// Percent of portfolio to risk on a given investment.
+		// We use delta as the win factor. Win factors below 0.5
+		// result in negative percents. Filter those away.
 		// https://www.fidelity.com/viewpoints/active-investor/options-trade-size
-		// Puts have negative deltas.
-		// We don't want to get assigned on a put, so take the inverse of delta.
-		h = fmt.Sprintf("%s", "% to Risk")
+		// Puts have negative deltas. We don't want to get assigned
+		// on a put, so take the inverse of delta.
+		h = "% to Risk"
 		deltaCol := colName(cols, "delta")
 		c = fmt.Sprintf("\"=if(%s%d = 0, 0, (1+%s%d) - (1-(1+%s%d))/((1+%s%d)/(1-(1+%s%d))))\"", deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row)
 	case "lots":
@@ -327,7 +243,7 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 	return h, c
 }
 
-// cellCall returns a header and cell string formatted for printing.
+// cellCall returns a header and cell string formatted for printing
 func (security *Security) cellCall(cols []string, col string, contract Contract, expiration string) (string, string) {
 	// Almost everything for a put is the same as for a call
 	if col != "itm" && col != "KellyCriterion" {
@@ -347,11 +263,11 @@ func (security *Security) cellCall(cols []string, col string, contract Contract,
 		c = fmt.Sprintf("%8s", inTheMoney)
 
 	case "KellyCriterion":
-		// Percent of portfolio to risk on a given investment
-		// We use delta as the win factor
-		// Win factors below 0.5 result in negative percents. Filter those away.
+		// Percent of portfolio to risk on a given investment.
+		// We use delta as the win factor. Win factors below 0.5
+		// result in negative percents. Filter those away.
 		// https://www.fidelity.com/viewpoints/active-investor/options-trade-size
-		h = fmt.Sprintf("%s", "% to Risk")
+		h = "% to Risk"
 		deltaCol := colName(cols, "delta")
 		c = fmt.Sprintf("\"=if(%s%d = 0, 0, abs(%s%d) - (1-abs(%s%d))/(abs(%s%d)/(1-abs(%s%d))))\"", deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row)
 	}
@@ -359,7 +275,7 @@ func (security *Security) cellCall(cols []string, col string, contract Contract,
 	return h, c
 }
 
-// formatHeader formats the header for the table.
+// formatHeader formats the header for the table
 func (security *Security) formatHeader(cols []string, csv bool) string {
 	var separator string
 	var output string
@@ -370,14 +286,14 @@ func (security *Security) formatHeader(cols []string, csv bool) string {
 		separator = "  "
 	}
 
-	// The row with space for the available cash and the week's yield pct.
+	// The row with space for the available cash and the week's yield percent
 	for _, col := range cols {
 		switch col {
 		case "premium":
 			pname := colName(cols, "premium")
 			ename := colName(cols, "exposure")
 			if ename[0] == '!' {
-				// For calls, the column name is 'outlay'.
+				// For calls, the column name is 'outlay'
 				ename = colName(cols, "outlay")
 			}
 			output += fmt.Sprintf("=%s2/%s2", pname, ename)
@@ -386,7 +302,7 @@ func (security *Security) formatHeader(cols []string, csv bool) string {
 	}
 	output += "\n"
 
-	// The row with the sum of the premium and the exposure.
+	// The row with the sum of the premium and the exposure
 	for _, col := range cols {
 		switch col {
 		case "premium":
@@ -403,7 +319,7 @@ func (security *Security) formatHeader(cols []string, csv bool) string {
 	}
 	output += "\n"
 
-	// The column names.
+	// The column names
 	for _, col := range cols {
 		h, _ := security.cellPut(cols, col, security.Puts[0], "")
 		output += h
@@ -414,8 +330,8 @@ func (security *Security) formatHeader(cols []string, csv bool) string {
 	return output
 }
 
-// formatPut formats the put data for a single ticker.
-func (security *Security) formatPut(p params, put int, csv bool, expiration string) string {
+// formatPut formats the put data for a single ticker
+func (security *Security) formatPut(p Params, put int, csv bool, expiration string) string {
 	var separator string
 	var output string
 
@@ -425,8 +341,8 @@ func (security *Security) formatPut(p params, put int, csv bool, expiration stri
 		separator = "  "
 	}
 
-	for _, col := range p.pCols {
-		_, c := security.cellPut(p.pCols, col, security.Puts[put], expiration)
+	for _, col := range p.PutCols {
+		_, c := security.cellPut(p.PutCols, col, security.Puts[put], expiration)
 		output += c
 		output += separator
 	}
@@ -435,8 +351,8 @@ func (security *Security) formatPut(p params, put int, csv bool, expiration stri
 	return output
 }
 
-// formatCall formats the call data for a single ticker.
-func (security *Security) formatCall(p params, call int, csv bool, expiration string) string {
+// formatCall formats the call data for a single ticker
+func (security *Security) formatCall(p Params, call int, csv bool, expiration string) string {
 	var separator string
 	var output string
 
@@ -446,8 +362,8 @@ func (security *Security) formatCall(p params, call int, csv bool, expiration st
 		separator = "  "
 	}
 
-	for _, col := range p.cCols {
-		_, c := security.cellCall(p.cCols, col, security.Calls[call], expiration)
+	for _, col := range p.CallCols {
+		_, c := security.cellCall(p.CallCols, col, security.Calls[call], expiration)
 		output += c
 		output += separator
 	}
@@ -458,14 +374,14 @@ func (security *Security) formatCall(p params, call int, csv bool, expiration st
 
 var row = 1
 
-// PrintPut prints the put data for a single ticker to the personalized CSV files.
-func (security *Security) PrintPut(p params, put int, header bool, expiration string, file string) {
+// printPut prints the put data for a single ticker to the personalized CSV files
+func (security *Security) printPut(p Params, put int, header bool, expiration string, file string) {
 	var output string
 
 	if header {
 		row = 1
 
-		output = security.formatHeader(p.pCols, true)
+		output = security.formatHeader(p.PutCols, true)
 		csv.AppendFile(file, output, true)
 
 		row += strings.Count(output, "\n")
@@ -477,14 +393,14 @@ func (security *Security) PrintPut(p params, put int, header bool, expiration st
 	row += strings.Count(output, "\n")
 }
 
-// PrintCall prints the call data for a single ticker to the personalized CSV files.
-func (security *Security) PrintCall(p params, call int, header bool, expiration string, file string) {
+// printCall prints the call data for a single ticker to the personalized CSV files
+func (security *Security) printCall(p Params, call int, header bool, expiration string, file string) {
 	var output string
 
 	if header {
 		row = 1
 
-		output = security.formatHeader(p.cCols, true)
+		output = security.formatHeader(p.CallCols, true)
 		csv.AppendFile(file, output, true)
 
 		row += strings.Count(output, "\n")
@@ -496,115 +412,103 @@ func (security *Security) PrintCall(p params, call int, header bool, expiration 
 	row += strings.Count(output, "\n")
 }
 
-// Print writes a filtered set of options to CSV files.
-func Print(securities []Security, expiration string) {
-	for _, p := range []params{paramsCc, paramsEb} {
+func useThisContract(contract Contract, expiration string, p Params) bool {
+	if expiration < contract.Expiration {
+		return false
+	}
 
-		file := p.user + "_" + expiration + "_puts" + ".csv"
-		header := true
+	if contract.Bid <= 0 {
+		return false
+	}
 
-		for _, security := range securities {
-			for put := range security.Puts {
-				if expiration < security.Puts[put].Expiration {
-					continue
-				}
+	if contract.Strike > p.MaxStrike {
+		return false
+	}
 
-				if security.Puts[put].Bid <= 0 {
-					continue
-				}
+	if contract.SafetySpread < p.MinSafetySpread {
+		return false
+	}
 
-				// Does this option cost more than current market share price?
-				if security.Puts[put].PriceBasisDelta <= 0 {
-					continue
-				}
+	if contract.CallSpread < p.MinCallSpread {
+		return false
+	}
 
-				if security.Puts[put].Strike > p.maxStrike {
-					continue
-				}
+	return true
+}
 
-				if security.Puts[put].BidStrikeRatio < p.minYield {
-					continue
-				}
+func useThisPut(security Security, contract Contract, expiration string, p Params) bool {
+	if !useThisContract(contract, expiration, p) {
+		return false
+	}
 
-				if security.Puts[put].SafetySpread < p.minSafetySpread {
-					continue
-				}
+	// Does this option cost more than current market share price?
+	if contract.PriceBasisDelta <= 0 {
+		return false
+	}
 
-				if security.Puts[put].CallSpread < p.minCallSpread {
-					continue
-				}
+	if contract.BidStrikeRatio < p.MinYield {
+		return false
+	}
 
-				// If it is in the money, only consider it if '-itm=true'.
-				if security.Puts[put].Strike > security.Price && !p.itm {
-					continue
-				}
+	// If it is in the money, only consider it if '-itm=true'.
+	if contract.Strike > security.Price && !p.Itm {
+		return false
+	}
 
-				security.PrintPut(p, put, header, expiration, file)
+	return true
+}
 
-				header = false
+func useThisCall(security Security, contract Contract, expiration string, p Params) bool {
+	if !useThisContract(contract, expiration, p) {
+		return false
+	}
+
+	if contract.BidPriceRatio < p.MinYield {
+		return false
+	}
+
+	ifCalled := (contract.Bid + contract.Strike - security.Price) / security.Price
+	if ifCalled < p.MinIfCalled {
+		return false
+	}
+
+	// If it is in the money, only consider it if '-itm=true'.
+	if contract.Strike < security.Price && !p.Itm {
+		return false
+	}
+
+	return true
+}
+
+// Print writes a filtered set of options to CSV files
+func Print(securities []Security, expiration string, p Params) (string, string) {
+	putsSheet := p.Initials + "_" + expiration + "_puts" + ".csv"
+	callsSheet := p.Initials + "_" + expiration + "_calls" + ".csv"
+	header := true
+
+	// Puts
+	for _, security := range securities {
+		for put, contract := range security.Puts {
+			if !useThisPut(security, contract, expiration, p) {
+				continue
 			}
-		}
-
-		// The Google Drive ID of the folder to upload to
-		parentID := "1BpXjfOqRaSnpv0peBNzA8GcudX2-KMH3"
-
-		_, err := gdrive.CreateSheet(file, parentID)
-		if err != nil {
-			fmt.Printf("Unable to upload options file: %s %v\n", file, err)
-		} else {
-			fmt.Printf("Uploaded %s\n", file)
-		}
-
-		file = p.user + "_" + expiration + "_calls" + ".csv"
-		header = true
-
-		for _, security := range securities {
-			for call := range security.Calls {
-				if expiration < security.Calls[call].Expiration {
-					continue
-				}
-
-				if security.Calls[call].Bid <= 0 {
-					continue
-				}
-
-				if security.Calls[call].Strike > p.maxStrike {
-					continue
-				}
-
-				if security.Calls[call].BidPriceRatio < p.minYield {
-					continue
-				}
-
-				if security.Calls[call].SafetySpread < p.minSafetySpread {
-					continue
-				}
-
-				if security.Calls[call].CallSpread < p.minCallSpread {
-					continue
-				}
-
-				ifCalled := (security.Calls[call].Bid + security.Calls[call].Strike - security.Price) / security.Price
-				if ifCalled < p.minIfCalled {
-					continue
-				}
-
-				// If it is in the money, only consider it if '-itm=true'.
-				if security.Calls[call].Strike < security.Price && !p.itm {
-					continue
-				}
-
-				security.PrintCall(p, call, header, expiration, file)
-
-				header = false
-			}
-		}
-
-		_, err = gdrive.CreateSheet(file, parentID)
-		if err != nil {
-			fmt.Printf("Unable to upload options file: %s %v\n", file, err)
-		} else {
-			fmt.Printf("Uploaded %s\n", file)
+			security.printPut(p, put, header, expiration, putsSheet)
+			header = false
 		}
 	}
+
+	header = true
+
+	// Calls
+	for _, security := range securities {
+		for call, contract := range security.Calls {
+			if !useThisCall(security, contract, expiration, p) {
+				continue
+			}
+			security.printCall(p, call, header, expiration, callsSheet)
+			header = false
+		}
+	}
+
+	return putsSheet, callsSheet
 }

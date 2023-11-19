@@ -9,17 +9,7 @@ import (
 	"github.com/erikbryant/options/security"
 )
 
-var (
-	earnings map[string]string
-)
-
-// Init initializes the internal state of package options.
-func Init(start, end string) (err error) {
-	earnings, err = finnhub.EarningDates(start, end)
-	return
-}
-
-// getStock retrieves stock data for the given ticker, retrying if possible
+// getStock returns stock data for the given ticker, retrying if possible
 func getStock(sec security.Security) (security.Security, error) {
 	var retryable bool
 	var err error
@@ -36,7 +26,7 @@ func getStock(sec security.Security) (security.Security, error) {
 	return sec, nil
 }
 
-// getSecurity accumulates stock/option data for the given ticker and returns it in a sec.
+// getSecurity accumulates stock/option data for the given ticker and returns it in a security
 func getSecurity(ticker, expiration string) (security.Security, error) {
 	var sec security.Security
 
@@ -51,7 +41,7 @@ func getSecurity(ticker, expiration string) (security.Security, error) {
 	if err != nil {
 		return sec, fmt.Errorf("error getting stock %s %s", sec.Ticker, err)
 	}
-	sec.EarningsDate = earnings[sec.Ticker]
+	sec.EarningsDate = finnhub.Earnings(sec.Ticker)
 
 	// Synthetic data. Use the index to access the option instead of having
 	// range return the option, since range returns a COPY of the option.
@@ -75,7 +65,7 @@ func getSecurity(ticker, expiration string) (security.Security, error) {
 	return sec, nil
 }
 
-// Securities accumulates stock/option data for the given tickers and returns it in a list of sec.
+// Securities accumulates stock/option data for the given tickers and returns it in a list of sec
 func Securities(tickers []string, expiration string) ([]security.Security, error) {
 	var securities []security.Security
 
