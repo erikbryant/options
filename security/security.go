@@ -40,19 +40,18 @@ type DayRange struct {
 	Volume float64
 }
 
-// Security holds data about a security and its options.
+// Security holds data about a security and its option contracts
 type Security struct {
 	Ticker       string
 	Close        DayRange
 	Price        float64
-	Strikes      []float64
 	Puts         []Contract
 	Calls        []Contract
 	EarningsDate string
 	PE           float64
 }
 
-// params holds the parameters for each user's output preferences.
+// params holds the parameters for each user's output preferences
 type Params struct {
 	Initials        string
 	MaxStrike       float64
@@ -65,9 +64,9 @@ type Params struct {
 	PutCols         []string
 }
 
-// HasOptions returns whether the security has options.
+// HasOptions returns whether the security has both puts and calls
 func (security *Security) HasOptions() bool {
-	return len(security.Puts) != 0 && len(security.Calls) != 0 && len(security.Strikes) != 0
+	return len(security.Puts) != 0 && len(security.Calls) != 0
 }
 
 // colName returns the column name that a spreadsheet would give it
@@ -482,11 +481,10 @@ func useThisCall(security Security, contract Contract, expiration string, p Para
 
 // Print writes a filtered set of options to CSV files
 func Print(securities []Security, expiration string, p Params) (string, string) {
-	putsSheet := p.Initials + "_" + expiration + "_puts" + ".csv"
-	callsSheet := p.Initials + "_" + expiration + "_calls" + ".csv"
-	header := true
+	putsSheet := p.Initials + "_" + expiration + "_puts.csv"
+	callsSheet := p.Initials + "_" + expiration + "_calls.csv"
 
-	// Puts
+	header := true
 	for _, security := range securities {
 		for put, contract := range security.Puts {
 			if !useThisPut(security, contract, expiration, p) {
@@ -498,8 +496,6 @@ func Print(securities []Security, expiration string, p Params) (string, string) 
 	}
 
 	header = true
-
-	// Calls
 	for _, security := range securities {
 		for call, contract := range security.Calls {
 			if !useThisCall(security, contract, expiration, p) {

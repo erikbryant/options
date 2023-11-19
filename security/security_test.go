@@ -22,12 +22,6 @@ func TestHasOptions(t *testing.T) {
 
 	security.Calls = append(security.Calls, contract)
 	answer = security.HasOptions()
-	if answer != false {
-		t.Errorf("ERROR: For %v expected %v, got %v", security, false, answer)
-	}
-
-	security.Strikes = append(security.Strikes, 10.0)
-	answer = security.HasOptions()
 	if answer != true {
 		t.Errorf("ERROR: For %v expected %v, got %v", security, true, answer)
 	}

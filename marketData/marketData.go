@@ -117,16 +117,6 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 
 	sec.Price = underlyingPrice[0]
 
-	prev := strike[0]
-	for _, s := range strike {
-		// The list is doubled; has both call and put strikes. Only need one set.
-		if s < prev {
-			break
-		}
-		sec.Strikes = append(sec.Strikes, s)
-		prev = s
-	}
-
 	side, ok := m["side"].([]interface{})
 	if !ok {
 		return sec, fmt.Errorf("unable to parse side")
