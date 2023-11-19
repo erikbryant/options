@@ -102,8 +102,7 @@ func (security *Security) CallSpread(expiration string) float64 {
 
 // cellPut returns a header and cell string formatted for printing
 func (security *Security) cellPut(cols []string, col string, contract Contract, expiration string) (string, string) {
-	h := fmt.Sprintf("col not found: %s", col)
-	c := fmt.Sprintf("col not found: %s", col)
+	var h, c string
 
 	switch col {
 	case "ticker":
@@ -237,6 +236,9 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 		} else {
 			c = fmt.Sprintf("%8s", "OTM")
 		}
+	default:
+		h = fmt.Sprintf("col not found: %s", col)
+		c = fmt.Sprintf("col not found: %s", col)
 	}
 
 	return h, c
@@ -244,13 +246,7 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 
 // cellCall returns a header and cell string formatted for printing
 func (security *Security) cellCall(cols []string, col string, contract Contract, expiration string) (string, string) {
-	// Almost everything for a put is the same as for a call
-	if col != "itm" && col != "KellyCriterion" {
-		return security.cellPut(cols, col, contract, expiration)
-	}
-
-	h := fmt.Sprintf("col not found: %s", col)
-	c := fmt.Sprintf("col not found: %s", col)
+	var h, c string
 
 	switch col {
 	case "itm":
@@ -269,21 +265,19 @@ func (security *Security) cellCall(cols []string, col string, contract Contract,
 		h = "% to Risk"
 		deltaCol := colName(cols, "delta")
 		c = fmt.Sprintf("\"=if(%s%d = 0, 0, abs(%s%d) - (1-abs(%s%d))/(abs(%s%d)/(1-abs(%s%d))))\"", deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row, deltaCol, row)
+
+	default:
+		// Everything else is the same for a put as for a call
+		h, c = security.cellPut(cols, col, contract, expiration)
 	}
 
 	return h, c
 }
 
 // formatHeader formats the header for the table
-func (security *Security) formatHeader(cols []string, csv bool) string {
-	var separator string
-	var output string
-
-	if csv {
-		separator = ","
-	} else {
-		separator = "  "
-	}
+func (security *Security) formatHeader(cols []string) string {
+	output := ""
+	separator := ","
 
 	// The row with space for the available cash and the week's yield percent
 	for _, col := range cols {
@@ -380,7 +374,7 @@ func (security *Security) printPut(p Params, put int, header bool, expiration st
 	if header {
 		row = 1
 
-		output = security.formatHeader(p.PutCols, true)
+		output = security.formatHeader(p.PutCols)
 		csv.AppendFile(file, output, true)
 
 		row += strings.Count(output, "\n")
@@ -399,7 +393,7 @@ func (security *Security) printCall(p Params, call int, header bool, expiration 
 	if header {
 		row = 1
 
-		output = security.formatHeader(p.CallCols, true)
+		output = security.formatHeader(p.CallCols)
 		csv.AppendFile(file, output, true)
 
 		row += strings.Count(output, "\n")
