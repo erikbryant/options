@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// GetFile returns the contents of a CSV file, minus the header and any blank lines.
+// GetFile returns the contents of a CSV file, minus the header and any blank lines
 func GetFile(file string) ([]string, error) {
 	contents, err := os.ReadFile(file)
 	if err != nil {
@@ -24,7 +24,7 @@ func GetFile(file string) ([]string, error) {
 	return lines[1:], nil
 }
 
-// AppendFile adds to the end of a file (creates if not exist).
+// AppendFile adds to the end of a file (creates if not exist)
 func AppendFile(file, contents string, truncate bool) error {
 	mode := os.O_CREATE | os.O_WRONLY
 	if truncate {
