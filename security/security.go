@@ -475,27 +475,26 @@ func useThisCall(security Security, contract Contract, expiration string, p Para
 
 // Print writes a filtered set of options to CSV files
 func Print(securities []Security, expiration string, p Params) (string, string) {
-	putsSheet := p.Initials + "_" + expiration + "_puts.csv"
-	callsSheet := p.Initials + "_" + expiration + "_calls.csv"
-
+	sheet := p.Initials + "_" + expiration + "_puts.csv"
 	header := true
 	for _, security := range securities {
 		for put, contract := range security.Puts {
 			if !useThisPut(security, contract, expiration, p) {
 				continue
 			}
-			security.printPut(p, put, header, expiration, putsSheet)
+			security.printPut(p, put, header, expiration, sheet)
 			header = false
 		}
 	}
 
+	sheet = p.Initials + "_" + expiration + "_calls.csv"
 	header = true
 	for _, security := range securities {
 		for call, contract := range security.Calls {
 			if !useThisCall(security, contract, expiration, p) {
 				continue
 			}
-			security.printCall(p, call, header, expiration, callsSheet)
+			security.printCall(p, call, header, expiration, sheet)
 			header = false
 		}
 	}
