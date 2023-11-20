@@ -22,7 +22,7 @@ var (
 )
 
 // Init initializes the internal state of the package
-func Init(passPhrase, end string) {
+func Init(passPhrase, latestExpiration string) {
 	var err error
 
 	authToken, err = aes.Decrypt(cipherAuthToken, passPhrase)
@@ -30,7 +30,7 @@ func Init(passPhrase, end string) {
 		panic("Incorrect passphrase for FinnHub")
 	}
 
-	earnings, err = earningDates(end)
+	earnings, err = earningDates(latestExpiration)
 	if err != nil {
 		panic("Unable to get earnings dates")
 	}
