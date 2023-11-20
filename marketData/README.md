@@ -14,7 +14,7 @@ Dashboard, including quota used: [Dashboard](https://www.marketdata.app/dashboar
   * Use THETA or BID to know when to stop requesting strikes.
 * Uncomment the `regenerate` line that deletes old entries from the web cache.
 * Cache improvements
-  * Make cahcing smarter about when to update or not.
+  * Make caching smarter about when to update or not.
   * We have data cached from finnhub, but can't use it because we think we are getting from TradeKing. Maybe save the internal data instead of the raw data? Maybe check the cache for either format before checking the web?
 * Code cleanup
   * More consistent naming. Symbol v ticker v security v option. Ugh!

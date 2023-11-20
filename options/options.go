@@ -9,21 +9,9 @@ import (
 	"github.com/erikbryant/options/security"
 )
 
-// getStock returns stock data for the given ticker, retrying if possible
+// getStock returns stock data for the given security
 func getStock(sec security.Security) (security.Security, error) {
-	var retryable bool
-	var err error
-
-	for {
-		sec, retryable, err = finnhub.GetStock(sec)
-		if err == nil || !retryable {
-			break
-		}
-		fmt.Println("Finnhub is throttling, sleeping...")
-		time.Sleep(6 * time.Second)
-	}
-
-	return sec, nil
+	return finnhub.GetStock(sec)
 }
 
 // getSecurity accumulates stock/option data for the given ticker and returns it in a security

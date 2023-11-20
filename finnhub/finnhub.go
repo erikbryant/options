@@ -21,7 +21,7 @@ var (
 	earnings        map[string]string
 )
 
-// Init initializes the internal state of the package.
+// Init initializes the internal state of the package
 func Init(passPhrase, end string) {
 	var err error
 
@@ -93,7 +93,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	return jsonObject, false, nil
 }
 
-// parseEarnings parses the earnings json returned from finnhub.
+// parseEarnings parses the earnings json returned from finnhub
 func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 	earnings := make(map[string]string)
 
@@ -119,7 +119,7 @@ func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 	return earnings, nil
 }
 
-// parseQuote parses the quote json returned from finnhub.
+// parseQuote parses the quote json returned from finnhub
 func parseQuote(m map[string]interface{}, sec security.Security) (security.Security, error) {
 	t, ok := m["t"]
 	if !ok {
@@ -146,7 +146,7 @@ func parseQuote(m map[string]interface{}, sec security.Security) (security.Secur
 	return sec, nil
 }
 
-// parseQuote parses the quote json returned from finnhub.
+// parseMetric parses the quote json returned from finnhub
 func parseMetric(m map[string]interface{}, sec security.Security) (security.Security, error) {
 	mMetric, ok := m["metric"]
 	if !ok {
@@ -173,27 +173,34 @@ func parseMetric(m map[string]interface{}, sec security.Security) (security.Secu
 	return sec, nil
 }
 
+func fetch(url string) (map[string]interface{}, error) {
+	response, err := cache.Read(url)
+	if err == nil {
+		return response, nil
+	}
+
+	retry := true
+	for retry {
+		response, retry, err = webRequest(url)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	cache.Update(url, response)
+
+	return response, nil
+}
+
 // earningDates returns all earning announcement dates from now to the end date
 func earningDates(end string) (map[string]string, error) {
-	today := time.Now().Format("20060102")
-
 	start := time.Now().Format("2006-01-02")
 
 	url := "https://finnhub.io/api/v1/calendar/earnings?from=" + start + "&to=" + end
 
-	response, err := cache.Read(today + url)
+	response, err := fetch(url)
 	if err != nil {
-		for {
-			var retryable bool
-			response, retryable, err = webRequest(url)
-			if retryable {
-				continue
-			}
-			if err != nil {
-				return nil, fmt.Errorf("error fetching earnings dates %s", err)
-			}
-			break
-		}
+		return nil, fmt.Errorf("error fetching earnings dates %s", err)
 	}
 
 	dates, err := parseEarnings(response)
@@ -201,76 +208,48 @@ func earningDates(end string) (map[string]string, error) {
 		return nil, fmt.Errorf("error parsing earning dates %s", err)
 	}
 
-	cache.Update(today+url, response)
-
 	return dates, nil
 }
 
-func getQuote(sec security.Security) (security.Security, bool, error) {
-	cacheStale := false
-	today := time.Now().Format("20060102")
-
+func getQuote(sec security.Security) (security.Security, error) {
 	url := "https://finnhub.io/api/v1/quote?symbol=" + sec.Ticker
 
-	response, err := cache.Read(today + url)
+	response, err := fetch(url)
 	if err != nil {
-		cacheStale = true
-		var retryable bool
-		response, retryable, err = webRequest(url)
-		if err != nil {
-			return sec, retryable, fmt.Errorf("error fetching quote data %s %s", sec.Ticker, err)
-		}
+		return sec, fmt.Errorf("error fetching quote %s %s", sec.Ticker, err)
 	}
 
 	sec, err = parseQuote(response, sec)
 	if err != nil {
-		return sec, false, fmt.Errorf("error parsing quote %s", err)
+		return sec, fmt.Errorf("error parsing quote %s", err)
 	}
 
-	// Only update the cache if the price was populated.
-	if cacheStale && sec.Price > 0 {
-		cache.Update(today+url, response)
-	}
-
-	return sec, false, nil
+	return sec, nil
 }
 
-func getMetric(sec security.Security) (security.Security, bool, error) {
-	cacheStale := false
-	today := time.Now().Format("20060102")
-
+func getMetric(sec security.Security) (security.Security, error) {
 	url := "https://finnhub.io/api/v1/stock/metric?metric=all&symbol=" + sec.Ticker
 
-	response, err := cache.Read(today + url)
+	response, err := fetch(url)
 	if err != nil {
-		cacheStale = true
-		var retryable bool
-		response, retryable, err = webRequest(url)
-		if err != nil {
-			return sec, retryable, fmt.Errorf("error fetching metric data %s %s", sec.Ticker, err)
-		}
+		return sec, fmt.Errorf("error fetching metric %s %s", sec.Ticker, err)
 	}
 
 	sec, err = parseMetric(response, sec)
 	if err != nil {
-		return sec, false, fmt.Errorf("error parsing metric %s", err)
+		return sec, fmt.Errorf("error parsing metric %s", err)
 	}
 
-	// Only update the cache if the price was populated.
-	if cacheStale && sec.Price > 0 {
-		cache.Update(today+url, response)
-	}
-
-	return sec, false, nil
+	return sec, nil
 }
 
-// GetStock looks up a single ticker symbol returns the sec.
-func GetStock(sec security.Security) (security.Security, bool, error) {
-	sec, retryable, err := getQuote(sec)
+// GetStock looks up a single ticker symbol returns the sec
+func GetStock(sec security.Security) (security.Security, error) {
+	sec, err := getQuote(sec)
 	if err != nil {
-		return sec, retryable, err
+		return sec, err
 	}
 
-	sec, retryable, err = getMetric(sec)
-	return sec, retryable, err
+	sec, err = getMetric(sec)
+	return sec, err
 }

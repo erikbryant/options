@@ -168,6 +168,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	var response *http.Response
 	var err error
 
+	// If this is the first URL parameter we need a '?' prefix
 	if url[len(url)-1] == '/' {
 		url += "?"
 	} else {
@@ -175,15 +176,12 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	}
 	url += "token=" + authToken
 
-	fmt.Println(url)
-
 	for {
 		response, err = web.Request2(url, map[string]string{})
 		if err != nil {
-			return nil, false, fmt.Errorf("error fetching symbol data %s", err)
+			return nil, false, fmt.Errorf("error requesting symbol data %s", err)
 		}
 		if response.StatusCode == 429 {
-			fmt.Println("Got a 429")
 			limitReset, ok := response.Header["X-Api-Ratelimit-Reset"]
 			if !ok {
 				return nil, true, fmt.Errorf("could not parse throttling header")
@@ -201,8 +199,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		if response.StatusCode == 200 || response.StatusCode == 203 {
 			break
 		}
-		fmt.Println(url)
-		return nil, false, fmt.Errorf("got an unexpected StatusCode %v", response)
+		return nil, false, fmt.Errorf("URL %s got an unexpected StatusCode %v", url, response)
 	}
 
 	contents, err := io.ReadAll(response.Body)
@@ -220,34 +217,21 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	return jsonObject, false, nil
 }
 
-func cachedFetch(url string) (map[string]interface{}, error) {
+func fetch(url string) (map[string]interface{}, error) {
 	response, err := cache.Read(url)
 	if err == nil {
 		return response, nil
 	}
 
-	for {
-		var retryable bool
-		response, retryable, err = webRequest(url)
-		if retryable {
-			continue
-		}
-		if err != nil {
-			return nil, fmt.Errorf("error concatenating marketData option data %s", err)
-		}
-		break
+	retry := true
+	for retry {
+		response, retry, err = webRequest(url)
 	}
-
-	cache.Update(url, response)
-
-	return response, nil
-}
-
-func fetch(url string) (map[string]interface{}, error) {
-	response, err := cachedFetch(url)
 	if err != nil {
 		return nil, err
 	}
+
+	cache.Update(url, response)
 
 	return response, nil
 }
@@ -297,10 +281,6 @@ func GetOptions(sec security.Security, latestExpiration string) (security.Securi
 		return sec, fmt.Errorf("error getting %s expirations %s", sec.Ticker, err)
 	}
 
-	if len(expirations) != 1 {
-		fmt.Println(latestExpiration, expirations)
-	}
-
 	for _, expiration := range expirations {
 		url := "https://api.marketdata.app/v1/options/chain/" + sec.Ticker + "/"
 		url += "?expiration=" + expiration
@@ -308,7 +288,7 @@ func GetOptions(sec security.Security, latestExpiration string) (security.Securi
 
 		response, err := fetch(url)
 		if err != nil {
-			return sec, fmt.Errorf("error concatenating marketData options %s %s", sec.Ticker, err)
+			return sec, fmt.Errorf("error fetching marketData options %s %s", sec.Ticker, err)
 		}
 
 		sec, err = parseMarketOptions(response, sec)
