@@ -160,7 +160,7 @@ func parseMetric(m map[string]interface{}, sec security.Security) (security.Secu
 
 	pe, ok := metric["peBasicExclExtraTTM"]
 	if !ok {
-		return sec, fmt.Errorf("unable to parse metric object peBasicExclExtraTTM")
+		fmt.Printf("unable to parse metric object peBasicExclExtraTTM for %s\n", sec.Ticker)
 	}
 
 	if pe != nil {
