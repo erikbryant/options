@@ -12,11 +12,14 @@ const cacheDir = "./web-request-cache/"
 
 // sanitize replaces reserved filesystem characers with '-'
 func sanitize(id string) string {
-	id = strings.ReplaceAll(id, "/", "-")
+	reserved := []string{"/", "?", "&"}
+	for _, r := range reserved {
+		id = strings.ReplaceAll(id, r, "-")
+	}
 	return id
 }
 
-// Read reads an object from the cache (if it is present)
+// Read returns an object from the cache or an error
 func Read(id string) (map[string]interface{}, error) {
 	object := path.Join(cacheDir, sanitize(id))
 
