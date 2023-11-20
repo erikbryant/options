@@ -25,6 +25,7 @@ func Remove(list, skip []string) []string {
 		result = append(result, key)
 	}
 
+	// We pulled these out of a map, so they are now unordered
 	sort.Strings(result)
 
 	return result
