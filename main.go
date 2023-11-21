@@ -25,27 +25,25 @@ func usage() {
 	fmt.Println("    options -passPhrase XYZZY -expiration 2021-11-19")
 }
 
+// Symbols that we do not want to trade in
 var skipList = []string{
+	// Cannabis
 	"ACB",
-	"APHA",
-	"BRZU",
 	"CGC",
-	"CRON",
+	"SNDL",
+	"TLRY",
+
+	// Leveraged ETFs
 	"ERX",
-	"EWW",
 	"FAS",
-	"IWF",
 	"JNUG",
 	"LABD",
 	"LABU",
 	"NUGT",
 	"SDS",
 	"SLV",
-	"SNDL",
 	"SPXU",
 	"SQQQ",
-	"TECS",
-	"TLRY",
 	"TNA",
 	"TQQQ",
 	"UCO",
@@ -54,6 +52,23 @@ var skipList = []string{
 	"VIXY",
 	"VXX",
 	"YINN",
+
+	// MarketData has no options data
+	"CANO",
+
+	// MarketData returns zero for price
+	"DJX",
+	"MRUT",
+	"MXEA",
+	"MXEF",
+	"NANOS",
+	"OEX",
+	"RUT",
+	"SPX",
+	"VIX",
+	"XEO",
+	"XSP",
+	"ZZK",
 }
 
 func upload(sheet, parentID string) {
