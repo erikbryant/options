@@ -54,7 +54,7 @@ type Security struct {
 // params holds the parameters for each user's output preferences
 type Params struct {
 	Initials        string
-	MaxStrike       float64
+	MaxPrice        float64
 	MinYield        float64
 	MinSafetySpread float64
 	MinCallSpread   float64
@@ -414,7 +414,7 @@ func useThisContract(contract Contract, expiration string, p Params) bool {
 		return false
 	}
 
-	if contract.Strike > p.MaxStrike {
+	if contract.Strike > p.MaxPrice {
 		return false
 	}
 

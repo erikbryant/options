@@ -96,7 +96,7 @@ func main() {
 	params := []security.Params{
 		{
 			Initials:        "cc",
-			MaxStrike:       100.0,
+			MaxPrice:        100.0,
 			MinYield:        0.0,
 			MinSafetySpread: 0.0,
 			MinCallSpread:   0.0,
@@ -107,7 +107,7 @@ func main() {
 		},
 		{
 			Initials:        "eb",
-			MaxStrike:       50.0,
+			MaxPrice:        50.0,
 			MinYield:        1.5,
 			MinSafetySpread: 10.0,
 			MinCallSpread:   20.0,
@@ -121,8 +121,8 @@ func main() {
 	// Find the max share price we care about; we'll ignore any security above this price
 	maxPrice := 0.0
 	for _, param := range params {
-		if param.MaxStrike > maxPrice {
-			maxPrice = param.MaxStrike
+		if param.MaxPrice > maxPrice {
+			maxPrice = param.MaxPrice
 		}
 	}
 
