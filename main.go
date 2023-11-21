@@ -55,20 +55,7 @@ var skipList = []string{
 
 	// MarketData has no options data
 	"CANO",
-
-	// MarketData returns zero for price
-	"DJX",
-	"MRUT",
-	"MXEA",
-	"MXEF",
 	"NANOS",
-	"OEX",
-	"RUT",
-	"SPX",
-	"VIX",
-	"XEO",
-	"XSP",
-	"ZZK",
 }
 
 func upload(sheet, parentID string) {

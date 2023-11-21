@@ -124,17 +124,9 @@ func parseQuote(m map[string]interface{}, sec *security.Security) error {
 		return fmt.Errorf("unable to parse quote object timestamp")
 	}
 
-	if t.(float64) == 0 {
-		return fmt.Errorf("timestamp is zero")
-	}
-
 	c, ok := m["c"]
 	if !ok {
 		return fmt.Errorf("unable to parse quote object close")
-	}
-
-	if c.(float64) == 0 {
-		return fmt.Errorf("price is zero")
 	}
 
 	sec.Price, ok = c.(float64)
@@ -145,8 +137,11 @@ func parseQuote(m map[string]interface{}, sec *security.Security) error {
 	now := time.Now()
 	quoteDate := time.Unix(int64(t.(float64)), 0)
 	sinceClose := date.TimeSinceClose(now)
-	if now.Sub(quoteDate) > (sinceClose + 6*time.Hour + 30*time.Minute) {
-		return fmt.Errorf("security price is stale %s %f %d %v %v %v", sec.Ticker, sec.Price, int64(t.(float64)), quoteDate, sinceClose, now.Sub(quoteDate))
+	stale := now.Sub(quoteDate) > (sinceClose + 6*time.Hour + 30*time.Minute)
+
+	if c.(float64) == 0 || t.(float64) == 0 || stale {
+		fmt.Println("security price from Finnhub is zero or stale")
+		sec.Price = 0.0
 	}
 
 	return nil
