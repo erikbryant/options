@@ -91,13 +91,6 @@ func main() {
 	}
 	weekly = utils.Remove(weekly, skipList)
 
-	// Load underlying data for all options
-	securities, err := options.Securities(weekly, *expiration)
-	if err != nil {
-		fmt.Println("Error getting security data", err)
-		return
-	}
-
 	params := []security.Params{
 		{
 			Initials:        "cc",
@@ -121,6 +114,21 @@ func main() {
 			CallCols:        []string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "outlay", "premium"},
 			PutCols:         []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "exposure", "premium"},
 		},
+	}
+
+	// Find the max share price we care about; we'll ignore any security above this price
+	maxPrice := 0.0
+	for _, param := range params {
+		if param.MaxStrike > maxPrice {
+			maxPrice = param.MaxStrike
+		}
+	}
+
+	// Load underlying data for all options
+	securities, err := options.Securities(weekly, *expiration, maxPrice)
+	if err != nil {
+		fmt.Println("Error getting security:", err)
+		return
 	}
 
 	// The Google Drive ID of the folder to upload to

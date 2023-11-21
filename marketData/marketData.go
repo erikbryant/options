@@ -79,62 +79,62 @@ func strings(m map[string]interface{}, key string) ([]string, error) {
 }
 
 // parseMarketOptions extracts salient information from the raw Trade King format.
-func parseMarketOptions(m map[string]interface{}, sec security.Security) (security.Security, error) {
+func parseMarketOptions(m map[string]interface{}, sec *security.Security) error {
 	underlyingPrice, err := floats(m, "underlyingPrice")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	strike, err := floats(m, "strike")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	bid, err := floats(m, "bid")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	ask, err := floats(m, "ask")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	expiration, err := int64s(m, "expiration")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	delta, err := floats(m, "delta")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	iv, err := floats(m, "iv")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	last, err := floats(m, "last")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	openInterest, err := int64s(m, "openInterest")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	updated, err := int64s(m, "updated")
 	if err != nil {
-		return sec, err
+		return err
 	}
 
 	sec.Price = underlyingPrice[0]
 
 	side, ok := m["side"].([]interface{})
 	if !ok {
-		return sec, fmt.Errorf("unable to parse side")
+		return fmt.Errorf("unable to parse side")
 	}
 	for i, s := range side {
 		contract := security.Contract{}
@@ -157,11 +157,11 @@ func parseMarketOptions(m map[string]interface{}, sec security.Security) (securi
 		case "put":
 			sec.Puts = append(sec.Puts, contract)
 		default:
-			return sec, fmt.Errorf("unable to parse side type: %s", s.(string))
+			return fmt.Errorf("unable to parse side type: %s", s.(string))
 		}
 	}
 
-	return sec, nil
+	return nil
 }
 
 func webRequest(url string) (map[string]interface{}, bool, error) {
@@ -275,10 +275,10 @@ func expirationsUpTo(ticker, latestExpiration string) ([]string, error) {
 }
 
 // GetOptions looks up a single ticker symbol and returns its options.
-func GetOptions(sec security.Security, latestExpiration string) (security.Security, error) {
+func GetOptions(sec *security.Security, latestExpiration string) error {
 	expirations, err := expirationsUpTo(sec.Ticker, latestExpiration)
 	if err != nil {
-		return sec, fmt.Errorf("error getting %s expirations %s", sec.Ticker, err)
+		return fmt.Errorf("error getting %s expirations %s", sec.Ticker, err)
 	}
 
 	for _, expiration := range expirations {
@@ -288,14 +288,14 @@ func GetOptions(sec security.Security, latestExpiration string) (security.Securi
 
 		response, err := fetch(url)
 		if err != nil {
-			return sec, fmt.Errorf("error fetching marketData options %s %s", sec.Ticker, err)
+			return fmt.Errorf("error fetching marketData options %s %s", sec.Ticker, err)
 		}
 
-		sec, err = parseMarketOptions(response, sec)
+		err = parseMarketOptions(response, sec)
 		if err != nil {
-			return sec, fmt.Errorf("error parsing marketData options %s", err)
+			return fmt.Errorf("error parsing marketData options %s", err)
 		}
 	}
 
-	return sec, nil
+	return nil
 }

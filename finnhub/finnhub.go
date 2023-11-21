@@ -45,9 +45,7 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 	var err error
 
 	// API key authentication
-	auth := "&token=" + authToken
-
-	url += auth
+	url += "&token=" + authToken
 
 	for {
 		response, err = web.Request2(url, map[string]string{})
@@ -120,57 +118,65 @@ func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 }
 
 // parseQuote parses the quote json returned from finnhub
-func parseQuote(m map[string]interface{}, sec security.Security) (security.Security, error) {
+func parseQuote(m map[string]interface{}, sec *security.Security) error {
 	t, ok := m["t"]
 	if !ok {
-		return sec, fmt.Errorf("unable to parse quote object timestamp")
+		return fmt.Errorf("unable to parse quote object timestamp")
+	}
+
+	if t.(float64) == 0 {
+		return fmt.Errorf("timestamp is zero")
 	}
 
 	c, ok := m["c"]
 	if !ok {
-		return sec, fmt.Errorf("unable to parse quote object close")
+		return fmt.Errorf("unable to parse quote object close")
+	}
+
+	if c.(float64) == 0 {
+		return fmt.Errorf("price is zero")
 	}
 
 	sec.Price, ok = c.(float64)
 	if !ok {
-		return sec, fmt.Errorf("unable to convert c to float64 %v", c)
+		return fmt.Errorf("unable to convert c to float64 %v", c)
 	}
 
 	now := time.Now()
 	quoteDate := time.Unix(int64(t.(float64)), 0)
 	sinceClose := date.TimeSinceClose(now)
 	if now.Sub(quoteDate) > (sinceClose + 6*time.Hour + 30*time.Minute) {
-		return sec, fmt.Errorf("security price is stale %s %f %d %v %v %v", sec.Ticker, sec.Price, int64(t.(float64)), quoteDate, sinceClose, now.Sub(quoteDate))
+		return fmt.Errorf("security price is stale %s %f %d %v %v %v", sec.Ticker, sec.Price, int64(t.(float64)), quoteDate, sinceClose, now.Sub(quoteDate))
 	}
 
-	return sec, nil
+	return nil
 }
 
 // parseMetric parses the quote json returned from finnhub
-func parseMetric(m map[string]interface{}, sec security.Security) (security.Security, error) {
+func parseMetric(m map[string]interface{}, sec *security.Security) error {
 	mMetric, ok := m["metric"]
 	if !ok {
-		return sec, fmt.Errorf("unable to parse metric object")
+		return fmt.Errorf("unable to parse metric object")
 	}
 
 	metric, ok := mMetric.(map[string]interface{})
 	if !ok {
-		return sec, fmt.Errorf("unable to decode metric object")
+		return fmt.Errorf("unable to decode metric object")
 	}
 
 	pe, ok := metric["peBasicExclExtraTTM"]
-	if !ok {
-		fmt.Printf("unable to parse metric object peBasicExclExtraTTM for %s\n", sec.Ticker)
-	}
+	// if !ok {
+	// 	fmt.Printf("unable to parse metric object peBasicExclExtraTTM for %s\n", sec.Ticker)
+	// }
 
 	if pe != nil {
 		sec.PE, ok = pe.(float64)
 		if !ok {
-			return sec, fmt.Errorf("unable to convert pe to float64 %v", pe)
+			return fmt.Errorf("unable to convert pe to float64 %v", pe)
 		}
 	}
 
-	return sec, nil
+	return nil
 }
 
 func fetch(url string) (map[string]interface{}, error) {
@@ -211,45 +217,44 @@ func earningDates(end string) (map[string]string, error) {
 	return dates, nil
 }
 
-func getQuote(sec security.Security) (security.Security, error) {
+func getQuote(sec *security.Security) error {
 	url := "https://finnhub.io/api/v1/quote?symbol=" + sec.Ticker
 
 	response, err := fetch(url)
 	if err != nil {
-		return sec, fmt.Errorf("error fetching quote %s %s", sec.Ticker, err)
+		return fmt.Errorf("error fetching quote %s %s", sec.Ticker, err)
 	}
 
-	sec, err = parseQuote(response, sec)
+	err = parseQuote(response, sec)
 	if err != nil {
-		return sec, fmt.Errorf("error parsing quote %s", err)
+		return fmt.Errorf("error parsing quote %s", err)
 	}
 
-	return sec, nil
+	return nil
 }
 
-func getMetric(sec security.Security) (security.Security, error) {
+func getMetric(sec *security.Security) error {
 	url := "https://finnhub.io/api/v1/stock/metric?metric=all&symbol=" + sec.Ticker
 
 	response, err := fetch(url)
 	if err != nil {
-		return sec, fmt.Errorf("error fetching metric %s %s", sec.Ticker, err)
+		return fmt.Errorf("error fetching metric %s %s", sec.Ticker, err)
 	}
 
-	sec, err = parseMetric(response, sec)
+	err = parseMetric(response, sec)
 	if err != nil {
-		return sec, fmt.Errorf("error parsing metric %s", err)
+		return fmt.Errorf("error parsing metric %s", err)
 	}
 
-	return sec, nil
+	return nil
 }
 
 // GetStock looks up a single ticker symbol returns the sec
-func GetStock(sec security.Security) (security.Security, error) {
-	sec, err := getQuote(sec)
+func GetStock(sec *security.Security) error {
+	err := getQuote(sec)
 	if err != nil {
-		return sec, err
+		return err
 	}
 
-	sec, err = getMetric(sec)
-	return sec, err
+	return getMetric(sec)
 }
