@@ -160,11 +160,7 @@ func parseMetric(m map[string]interface{}, sec *security.Security) error {
 	}
 
 	pe, ok := metric["peBasicExclExtraTTM"]
-	// if !ok {
-	// 	fmt.Printf("unable to parse metric object peBasicExclExtraTTM for %s\n", sec.Ticker)
-	// }
-
-	if pe != nil {
+	if ok && pe != nil {
 		sec.PE, ok = pe.(float64)
 		if !ok {
 			return fmt.Errorf("unable to convert pe to float64 %v", pe)
