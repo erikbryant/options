@@ -19,7 +19,7 @@ var (
 	authToken       = ""
 )
 
-// Init initializes the internal state of the package.
+// Init initializes the internal state of the package
 func Init(passPhrase string) {
 	var err error
 
@@ -78,7 +78,7 @@ func strings(m map[string]interface{}, key string) ([]string, error) {
 	return vals, nil
 }
 
-// parseMarketOptions extracts salient information from the raw Trade King format.
+// parseMarketOptions extracts salient information from the raw format
 func parseMarketOptions(m map[string]interface{}, sec *security.Security) error {
 	underlyingPrice, err := floats(m, "underlyingPrice")
 	if err != nil {
@@ -181,6 +181,9 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		if err != nil {
 			return nil, false, fmt.Errorf("error requesting symbol data %s", err)
 		}
+		if response.StatusCode == 200 || response.StatusCode == 203 {
+			break
+		}
 		if response.StatusCode == 429 {
 			limitReset, ok := response.Header["X-Api-Ratelimit-Reset"]
 			if !ok {
@@ -196,8 +199,10 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 			time.Sleep(time.Until(t))
 			continue
 		}
-		if response.StatusCode == 200 || response.StatusCode == 203 {
-			break
+		if response.StatusCode == 509 {
+			// Bandwidth limit exceeded (this is retryable)
+			fmt.Println("HTTP 509 - Bandwidth limit exceeded; retrying...")
+			continue
 		}
 		return nil, false, fmt.Errorf("URL %s got an unexpected StatusCode %v", url, response)
 	}
@@ -274,7 +279,7 @@ func expirationsUpTo(ticker, latestExpiration string) ([]string, error) {
 	return expirations, nil
 }
 
-// GetOptions looks up a single ticker symbol and returns its options.
+// GetOptions looks up a single ticker symbol and returns its options
 func GetOptions(sec *security.Security, latestExpiration string) error {
 	expirations, err := expirationsUpTo(sec.Ticker, latestExpiration)
 	if err != nil {
@@ -284,7 +289,7 @@ func GetOptions(sec *security.Security, latestExpiration string) error {
 	for _, expiration := range expirations {
 		url := "https://api.marketdata.app/v1/options/chain/" + sec.Ticker + "/"
 		url += "?expiration=" + expiration
-		url += "&strikeLimit=10"
+		url += "&strikeLimit=11"
 
 		response, err := fetch(url)
 		if err != nil {
