@@ -76,7 +76,7 @@ func Securities(tickers []string, expiration string, maxPrice float64) ([]securi
 		}
 
 		if !sec.HasOptions() {
-			fmt.Printf("WARNING: %s has no options", sec.Ticker)
+			fmt.Printf("WARNING: %s has no options\n", sec.Ticker)
 			continue
 		}
 
