@@ -16,10 +16,8 @@ func getStock(sec *security.Security) error {
 
 // getOptions accumulates option data for the given ticker and returns it in a security
 func getOptions(sec *security.Security, expiration string) error {
-	var err error
-
 	// Fetch data
-	err = marketData.GetOptions(sec, expiration)
+	err := marketData.GetOptions(sec, expiration)
 	if err != nil {
 		return fmt.Errorf("error getting options %s %s", sec.Ticker, err)
 	}
