@@ -202,6 +202,8 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 		if response.StatusCode == 509 {
 			// Bandwidth limit exceeded (this is retryable)
 			fmt.Println("HTTP 509 - Bandwidth limit exceeded; retrying...")
+			fmt.Println(response)
+			time.Sleep(6 * time.Second)
 			continue
 		}
 		return nil, false, fmt.Errorf("URL %s got an unexpected StatusCode %v", url, response)
