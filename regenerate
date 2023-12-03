@@ -24,15 +24,15 @@ expiration=$2
 # Make sure we are using the latest code
 git pull --quiet
 
-# Clean old files out of the cache; they are only good for a day
+# Clean old files out of the cache; they are only good for a weekend
 mkdir -p web-request-cache
-find web-request-cache -type f -mmin +1440 -delete
+find web-request-cache -type f -mmin +4320 -delete
 
 # Clean out any old options runs
 find . -name "??_*_puts.csv" -depth 1 -delete
 find . -name "??_*_calls.csv" -depth 1 -delete
 
-# Clean out expired tokens; they are only good for around a week
+# Clean out expired tokens; they are only good for about a week
 find . -type f -name token.json -depth 1 -mmin +12960 -delete
 
 go run main.go -passPhrase ${passPhrase} -expiration ${expiration}
