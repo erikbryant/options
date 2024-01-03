@@ -196,7 +196,12 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 
 			t := time.Unix(utime, 0)
 			fmt.Printf("Daily quota reached. Sleeping until it resets at %v\n", t)
-			time.Sleep(time.Until(t))
+			for time.Now().Before(t) {
+				// We could sleep until t, but Sleep gets confused if the
+				// computer hibernates. Instead, sleep/check regularly.
+				fmt.Println("Now: ", time.Now(), " Sleeping for 1 minute intervals until: ", t)
+				time.Sleep(1 * time.Minute)
+			}
 			continue
 		}
 		if response.StatusCode == 509 {
