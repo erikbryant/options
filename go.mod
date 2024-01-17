@@ -3,8 +3,8 @@ module github.com/erikbryant/options
 go 1.21.6
 
 require (
-	github.com/erikbryant/aes v0.2.0
-	github.com/erikbryant/web v0.7.0
+	github.com/erikbryant/aes v0.3.0
+	github.com/erikbryant/web v0.8.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	golang.org/x/oauth2 v0.16.0
 	google.golang.org/api v0.156.0
@@ -32,7 +32,7 @@ require (
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240108191215-35c7eff3a6b1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240116215550-a9fa1716bcac // indirect
 	google.golang.org/grpc v1.60.1 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 )
