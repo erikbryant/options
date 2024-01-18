@@ -2,8 +2,6 @@
 credentials.json
 token.json
 
-.DS_Store
-
 web-request-cache
 *_*_calls.csv
 *_*_puts.csv
@@ -23,3 +21,9 @@ web-request-cache
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# Local files
+.fleet/
+.idea/
+.vscode/
+.DS_Store

@@ -51,7 +51,7 @@ type Security struct {
 	PE           float64
 }
 
-// params holds the parameters for each user's output preferences
+// Params holds the parameters for each user's output preferences
 type Params struct {
 	Initials        string
 	MaxPrice        float64

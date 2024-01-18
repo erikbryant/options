@@ -3,7 +3,7 @@ package gdrive
 //
 // Create 'options' project in GCP
 // Create Oauth tokens
-// Save Oauth credentials to credentils.json
+// Save Oauth credentials to credentials.json
 //
 // Go example
 //   https://cloud.google.com/docs/authentication?_ga=2.56685738.-1275246831.1637708616

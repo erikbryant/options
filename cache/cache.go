@@ -10,7 +10,7 @@ import (
 
 const cacheDir = "./web-request-cache/"
 
-// sanitize replaces reserved filesystem characers with '-'
+// sanitize replaces reserved filesystem characters with '-'
 func sanitize(id string) string {
 	reserved := []string{"/", "?", "&"}
 	for _, r := range reserved {
