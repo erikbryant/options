@@ -106,9 +106,9 @@ func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 			return nil, fmt.Errorf("unable to parse symbol object")
 		}
 
-		d, ok := val.(map[string]interface{})["d"]
+		d, ok := val.(map[string]interface{})["date"]
 		if !ok {
-			return nil, fmt.Errorf("unable to parse d object")
+			return nil, fmt.Errorf("unable to parse date object")
 		}
 
 		earnings[symbol.(string)] = d.(string)
