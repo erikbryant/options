@@ -30,6 +30,7 @@ var skipList = []string{
 	// Cannabis
 	"ACB",
 	"CGC",
+	"MSOS",
 	"SNDL",
 	"TLRY",
 
@@ -54,7 +55,6 @@ var skipList = []string{
 	"YINN",
 
 	// MarketData has no options data
-	"CANO",
 	"NANOS",
 	"ZZK",
 }
