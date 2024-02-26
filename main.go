@@ -97,6 +97,7 @@ func main() {
 	params := []security.Params{
 		{
 			Initials:        "cc",
+			MinPrice:        0.0,
 			MaxPrice:        100.0,
 			MinYield:        0.0,
 			MinSafetySpread: 0.0,
@@ -108,6 +109,7 @@ func main() {
 		},
 		{
 			Initials:        "eb",
+			MinPrice:        2.0,
 			MaxPrice:        50.0,
 			MinYield:        1.5,
 			MinSafetySpread: 10.0,
@@ -115,7 +117,7 @@ func main() {
 			MinIfCalled:     0.0,
 			Itm:             true,
 			CallCols:        []string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "outlay", "premium"},
-			PutCols:         []string{"ticker", "expiration", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "exposure", "premium"},
+			PutCols:         []string{"ticker", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "exposure", "premium"},
 		},
 	}
 
