@@ -83,7 +83,7 @@ func Securities(tickers []string, expiration string, maxPrice float64) ([]securi
 			continue
 		}
 
-		sec.PriceChange, err = marketData.PctChange(sec.Ticker, startDate, endDate)
+		sec.PriceChangePct, err = marketData.PctChange(sec.Ticker, startDate, endDate)
 		if err != nil {
 			fmt.Println(err)
 		}

@@ -42,14 +42,14 @@ type DayRange struct {
 
 // Security holds data about a security and its option contracts
 type Security struct {
-	Ticker       string
-	Close        DayRange
-	Price        float64 // latest price
-	PriceChange  float64 // percent change in price over trailing period
-	Puts         []Contract
-	Calls        []Contract
-	EarningsDate string
-	PE           float64
+	Ticker         string
+	Close          DayRange
+	Price          float64 // latest price
+	PriceChangePct float64 // percent change in price over trailing period
+	Puts           []Contract
+	Calls          []Contract
+	EarningsDate   string
+	PE             float64
 }
 
 // Params holds the parameters for each user's output preferences
@@ -119,7 +119,7 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 		c = fmt.Sprintf("\"=googlefinance(%s%d, \"\"price\"\")\"", tickerCol, row)
 	case "priceChange":
 		h = fmt.Sprintf("%8s", "1wk Price %")
-		c = fmt.Sprintf("$%7.02f", security.PriceChange)
+		c = fmt.Sprintf("%7.1f%%", security.PriceChangePct)
 	case "strike":
 		h = fmt.Sprintf("%8s", "Strike")
 		c = fmt.Sprintf("$%7.02f", contract.Strike)

@@ -344,6 +344,7 @@ func Candle(symbol, date string) (float64, float64, error) {
 	return o[0].(float64), c[0].(float64), nil
 }
 
+// PctChange returns the %change in share price between open on startDate and close on endDate
 func PctChange(symbol, startDate, endDate string) (float64, error) {
 	o, _, err := Candle(symbol, startDate)
 	if err != nil {
@@ -353,5 +354,5 @@ func PctChange(symbol, startDate, endDate string) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return (c - o) / o, nil
+	return 100.0 * (c - o) / o, nil
 }
