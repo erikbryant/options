@@ -119,6 +119,17 @@ func parseEarnings(m map[string]interface{}) (map[string]string, error) {
 
 // parseQuote parses the quote json returned from finnhub
 func parseQuote(m map[string]interface{}, sec *security.Security) error {
+	// {
+	//   "c": 207.39,      close
+	//   "d": -3.99,       delta (close - previousClose)
+	//   "dp": -1.8876,    delta percent (delta / previousClose)
+	//   "h": 227.3,       high
+	//   "l": 205.6,       low
+	//   "o": 213.41,      open
+	//   "pc": 211.38,     previousClose
+	//   "t": 1709931601   timestamp
+	// }
+
 	t, ok := m["t"]
 	if !ok {
 		return fmt.Errorf("unable to parse quote object timestamp")
@@ -140,7 +151,17 @@ func parseQuote(m map[string]interface{}, sec *security.Security) error {
 	stale := now.Sub(quoteDate) > (sinceClose + 6*time.Hour + 30*time.Minute)
 
 	if c.(float64) == 0 || t.(float64) == 0 || stale {
-		fmt.Println("security price from Finnhub is zero or stale")
+		msg := "From Finnhub"
+		if c.(float64) == 0 {
+			msg += ", sec price is zero"
+		}
+		if t.(float64) == 0 {
+			msg += ", sec timestamp is zero"
+		}
+		if stale {
+			msg += ", sec timestamp is stale"
+		}
+		fmt.Println(msg)
 		sec.Price = 0.0
 	}
 

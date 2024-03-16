@@ -45,3 +45,12 @@ func TimeSinceClose(t time.Time) time.Duration {
 
 	return 0
 }
+
+// Previous returns the date of the previous given weekday
+func Previous(wDay time.Weekday) string {
+	day := time.Now()
+	for day.Weekday() != wDay {
+		day = day.AddDate(0, 0, -1)
+	}
+	return day.Format("2006-01-02")
+}
