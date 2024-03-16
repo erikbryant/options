@@ -9,7 +9,7 @@ function usage() {
   echo
   echo "Where:"
   echo "  passPhrase - The pass phrase to unlock the API keys"
-  echo "  expiration - The date in yy-mm-dd form of the latest possible expiration date"
+  echo "  expiration - The date in yy-mm-dd form of the latest desired expiration date"
   echo
   echo "Example:"
   echo "  $0 topSecret123 2021-11-26"
