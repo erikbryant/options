@@ -44,7 +44,8 @@ type DayRange struct {
 type Security struct {
 	Ticker       string
 	Close        DayRange
-	Price        float64
+	Price        float64 // latest price
+	PriceChange  float64 // percent change in price over trailing period
 	Puts         []Contract
 	Calls        []Contract
 	EarningsDate string
@@ -116,6 +117,9 @@ func (security *Security) cellPut(cols []string, col string, contract Contract, 
 		h = fmt.Sprintf("%8s", "Price")
 		tickerCol := colName(cols, "ticker")
 		c = fmt.Sprintf("\"=googlefinance(%s%d, \"\"price\"\")\"", tickerCol, row)
+	case "priceChange":
+		h = fmt.Sprintf("%8s", "1wk Price %")
+		c = fmt.Sprintf("$%7.02f", security.PriceChange)
 	case "strike":
 		h = fmt.Sprintf("%8s", "Strike")
 		c = fmt.Sprintf("$%7.02f", contract.Strike)

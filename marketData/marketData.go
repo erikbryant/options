@@ -63,7 +63,8 @@ func int64s(m map[string]interface{}, key string) ([]int64, error) {
 	return vals, nil
 }
 
-func strings(m map[string]interface{}, key string) ([]string, error) {
+// values returns values for the given key
+func values(m map[string]interface{}, key string) ([]string, error) {
 	vals := []string{}
 
 	data, ok := m[key].([]interface{})
@@ -270,7 +271,7 @@ func expirationsUpTo(ticker, latestExpiration string) ([]string, error) {
 		return nil, fmt.Errorf("error fetching %s expirations %s", ticker, err)
 	}
 
-	dates, err := strings(response, "expirations")
+	dates, err := values(response, "expirations")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing %s expirations %s", ticker, err)
 	}
@@ -310,4 +311,47 @@ func GetOptions(sec *security.Security, latestExpiration string) error {
 	}
 
 	return nil
+}
+
+// Candle returns open/close candlestick data for a symbol
+func Candle(symbol, date string) (float64, float64, error) {
+	url := "https://api.marketdata.app/v1/stocks/bulkcandles/D/?symbols=" + symbol + "&date=" + date
+
+	response, err := fetch(url)
+	if err != nil {
+		return 0, 0, fmt.Errorf("error fetching marketData %s candlesticks %s", symbol, err)
+	}
+
+	// response = map[
+	//   s:ok
+	//   symbol:[IBM]
+	//   o:[176.15]
+	//   h:[176.9]
+	//   l:[173.79]
+	//   c:[175.1]
+	//   t:[1.7095284e+09]
+	//   v:[8.1505451e+07]
+	// ]
+
+	s := response["s"].(string)
+	if s != "ok" {
+		return 0, 0, fmt.Errorf("marketData returned non-ok status '%s' for %s", s, symbol)
+	}
+
+	o := response["o"].([]interface{})
+	c := response["c"].([]interface{})
+
+	return o[0].(float64), c[0].(float64), nil
+}
+
+func PctChange(symbol, startDate, endDate string) (float64, error) {
+	o, _, err := Candle(symbol, startDate)
+	if err != nil {
+		return 0, err
+	}
+	_, c, err := Candle(symbol, endDate)
+	if err != nil {
+		return 0, err
+	}
+	return (c - o) / o, nil
 }

@@ -2,6 +2,7 @@ package options
 
 import (
 	"fmt"
+	"github.com/erikbryant/options/date"
 	"time"
 
 	"github.com/erikbryant/options/finnhub"
@@ -46,6 +47,10 @@ func getOptions(sec *security.Security, expiration string) error {
 
 // Securities accumulates stock/option data for the given tickers and returns it in a list of sec
 func Securities(tickers []string, expiration string, maxPrice float64) ([]security.Security, error) {
+	startDate := date.Previous(time.Monday)
+	endDate := date.Previous(time.Friday)
+	fmt.Println(startDate, endDate)
+
 	var securities []security.Security
 
 	for _, ticker := range tickers {
@@ -76,6 +81,11 @@ func Securities(tickers []string, expiration string, maxPrice float64) ([]securi
 		if !sec.HasOptions() {
 			fmt.Printf("WARNING: %s has no options\n", sec.Ticker)
 			continue
+		}
+
+		sec.PriceChange, err = marketData.PctChange(sec.Ticker, startDate, endDate)
+		if err != nil {
+			fmt.Println(err)
 		}
 
 		securities = append(securities, sec)

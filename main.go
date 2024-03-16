@@ -104,8 +104,8 @@ func main() {
 			MinCallSpread:   0.0,
 			MinIfCalled:     0.0,
 			Itm:             true,
-			CallCols:        []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "outlay"},
-			PutCols:         []string{"ticker", "expiration", "price", "strike", "last", "bid", "ask", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "exposure"},
+			CallCols:        []string{"ticker", "expiration", "price", "priceChange", "strike", "last", "bid", "ask", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "outlay"},
+			PutCols:         []string{"ticker", "expiration", "price", "priceChange", "strike", "last", "bid", "ask", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "lotSize", "notes", "otmItm", "KellyCriterion", "lots", "premium", "exposure"},
 		},
 		{
 			Initials:        "eb",
@@ -116,8 +116,8 @@ func main() {
 			MinCallSpread:   20.0,
 			MinIfCalled:     0.0,
 			Itm:             true,
-			CallCols:        []string{"ticker", "price", "strike", "bid", "bidPriceRatio", "ifCalled", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "outlay", "premium"},
-			PutCols:         []string{"ticker", "price", "strike", "bid", "bidStrikeRatio", "delta", "IV", "safetySpread", "callSpread", "age", "earnings", "pe", "itm", "lotSize", "KellyCriterion", "lots", "exposure", "premium"},
+			CallCols:        []string{"ticker", "price", "priceChange", "strike", "bid", "bidPriceRatio", "ifCalled", "safetySpread", "callSpread", "earnings", "lotSize", "lots", "outlay", "premium"},
+			PutCols:         []string{"ticker", "price", "priceChange", "strike", "bid", "bidStrikeRatio", "safetySpread", "callSpread", "earnings", "lotSize", "lots", "exposure", "premium"},
 		},
 	}
 
