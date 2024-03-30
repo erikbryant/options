@@ -148,7 +148,7 @@ func parseQuote(m map[string]interface{}, sec *security.Security) error {
 	now := time.Now()
 	quoteDate := time.Unix(int64(t.(float64)), 0)
 	sinceClose := date.TimeSinceClose(now)
-	stale := now.Sub(quoteDate) > (sinceClose + 6*time.Hour + 30*time.Minute)
+	stale := now.Sub(quoteDate) > (sinceClose + (24+6)*time.Hour + 30*time.Minute)
 
 	if c.(float64) == 0 || t.(float64) == 0 || stale {
 		msg := "From Finnhub"
