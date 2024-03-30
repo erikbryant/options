@@ -56,7 +56,6 @@ var skipList = []string{
 
 	// MarketData has no options data
 	"NANOS",
-	"ZZK",
 }
 
 func upload(sheet, parentID string) {
