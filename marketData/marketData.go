@@ -57,7 +57,12 @@ func int64s(m map[string]interface{}, key string) ([]int64, error) {
 	}
 
 	for _, d := range data {
-		vals = append(vals, int64(d.(float64)))
+		val, ok := d.(float64)
+		if !ok {
+			fmt.Printf("Expected a float64, got '%v'. Assuming 0.\n", d)
+			val = 0
+		}
+		vals = append(vals, int64(val))
 	}
 
 	return vals, nil
