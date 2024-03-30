@@ -53,6 +53,10 @@ func Securities(tickers []string, expiration string, maxPrice float64) ([]securi
 
 	var securities []security.Security
 
+	statMaxPrice := []string{}
+	statGetFail := []string{}
+	statNoOptions := []string{}
+
 	for _, ticker := range tickers {
 		fmt.Printf("\r%s    ", ticker)
 
@@ -67,6 +71,7 @@ func Securities(tickers []string, expiration string, maxPrice float64) ([]securi
 
 		if sec.Price >= maxPrice {
 			// fmt.Printf("Skipping %s due to high price %0.2f > %0.2f\n", sec.Ticker, sec.Price, maxPrice)
+			statMaxPrice = append(statMaxPrice, sec.Ticker)
 			continue
 		}
 
@@ -75,11 +80,13 @@ func Securities(tickers []string, expiration string, maxPrice float64) ([]securi
 		err = getOptions(&sec, expiration)
 		if err != nil {
 			fmt.Printf("Error getting options: %s\n", err)
+			statGetFail = append(statGetFail, sec.Ticker)
 			continue
 		}
 
 		if !sec.HasOptions() {
 			fmt.Printf("WARNING: %s has no options\n", sec.Ticker)
+			statNoOptions = append(statNoOptions, sec.Ticker)
 			continue
 		}
 
@@ -92,6 +99,9 @@ func Securities(tickers []string, expiration string, maxPrice float64) ([]securi
 	}
 
 	fmt.Printf("\r%d of %d tickers loaded\n\n", len(securities), len(tickers))
+	fmt.Printf("  Rejected for price too high (%d): %v\n", len(statMaxPrice), statMaxPrice)
+	fmt.Printf("  Rejected for get failure    (%d): %v\n", len(statGetFail), statGetFail)
+	fmt.Printf("  Rejected for no options     (%d): %v\n", len(statNoOptions), statNoOptions)
 
 	return securities, nil
 }
