@@ -49,7 +49,7 @@ func getOptions(sec *security.Security, expiration string) error {
 func Securities(tickers []string, expiration string, maxPrice float64) ([]security.Security, error) {
 	startDate := date.Previous(time.Monday)
 	endDate := date.Previous(time.Friday)
-	fmt.Println(startDate, endDate)
+	fmt.Printf("Using startDate: %s, endDate %s for previous week's price %%change\n\n", startDate, endDate)
 
 	var securities []security.Security
 
