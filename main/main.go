@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/erikbryant/options/skiplist"
 
 	"github.com/erikbryant/options/cboe"
 	"github.com/erikbryant/options/finnhub"
@@ -23,39 +24,6 @@ func usage() {
 	fmt.Println()
 	fmt.Println("  Find all option plays")
 	fmt.Println("    options -passPhrase XYZZY -expiration 2021-11-19")
-}
-
-// Symbols that we do not want to trade in
-var skipList = []string{
-	// Cannabis
-	"ACB",
-	"CGC",
-	"MSOS",
-	"SNDL",
-	"TLRY",
-
-	// Leveraged ETFs
-	"ERX",
-	"FAS",
-	"JNUG",
-	"LABD",
-	"LABU",
-	"NUGT",
-	"SDS",
-	"SLV",
-	"SPXU",
-	"SQQQ",
-	"TNA",
-	"TQQQ",
-	"UCO",
-	"UPRO",
-	"UVXY",
-	"VIXY",
-	"VXX",
-	"YINN",
-
-	// MarketData has no options data
-	"NANOS",
 }
 
 func upload(sheet, parentID string) {
@@ -91,7 +59,7 @@ func main() {
 		fmt.Printf("error loading CBOE weekly options list %s\n", err)
 		return
 	}
-	weekly = utils.Remove(weekly, skipList)
+	weekly = utils.Remove(weekly, skiplist.Skip)
 
 	params := []security.Params{
 		{
