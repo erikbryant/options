@@ -35,4 +35,5 @@ find . -name "??_*_calls.csv" -depth 1 -delete
 # Clean out expired tokens; they are only good for about a week
 find . -type f -name token.json -depth 1 -mmin +12960 -delete
 
-go run main/main.go -passPhrase "${passPhrase}" -expiration "${expiration}"
+# This can be a long run. Don't let the Mac sleep during it.
+caffeinate -i go run main/main.go -passPhrase "${passPhrase}" -expiration "${expiration}"
