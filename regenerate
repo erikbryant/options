@@ -35,5 +35,18 @@ find . -name "??_*_calls.csv" -depth 1 -delete
 # Clean out expired tokens; they are only good for about a week
 find . -type f -name token.json -depth 1 -mmin +12960 -delete
 
+# Precache candles. We sometimes exceed our MarketData API request quota.
+# Cache these earlier in the week so our quota can reset in time for the
+# big run below.
+caffeinate -i go run precache/main.go -passPhrase "${passPhrase}"
+
+echo
+
+# Dont generate the spreadsheets if the market has not closed for the week.
+WEEKDAY=$( date "+%u" )
+HOUR=$( date "+%H" )
+[[ ${WEEKDAY} -lt 5 ]] && echo "Too early: day ${WEEKDAY}" && exit
+[[ ${WEEKDAY} -eq 5 ]] && [[ ${HOUR} -lt 16 ]] && echo "Too early: day ${WEEKDAY} hour ${HOUR}" && exit
+
 # This can be a long run. Don't let the Mac sleep during it.
 caffeinate -i go run main/main.go -passPhrase "${passPhrase}" -expiration "${expiration}"
