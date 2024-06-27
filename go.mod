@@ -7,11 +7,11 @@ require (
 	github.com/erikbryant/web v0.8.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	golang.org/x/oauth2 v0.21.0
-	google.golang.org/api v0.185.0
+	google.golang.org/api v0.186.0
 )
 
 require (
-	cloud.google.com/go/auth v0.5.2 // indirect
+	cloud.google.com/go/auth v0.6.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
