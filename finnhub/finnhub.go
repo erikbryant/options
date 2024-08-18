@@ -129,15 +129,16 @@ func parseQuote(m map[string]interface{}, sec *security.Security) error {
 	//   "pc": 211.38,     previousClose
 	//   "t": 1709931601   timestamp
 	// }
+	var ok bool
 
-	t, ok := m["t"]
-	if !ok {
-		return fmt.Errorf("unable to parse quote object timestamp")
+	t, err := web.MsiValue(m, []string{"t"})
+	if err != nil {
+		return fmt.Errorf("unable to parse quote object timestamp %s", err)
 	}
 
-	c, ok := m["c"]
-	if !ok {
-		return fmt.Errorf("unable to parse quote object close")
+	c, err := web.MsiValue(m, []string{"c"})
+	if err != nil {
+		return fmt.Errorf("unable to parse quote object close %s", err)
 	}
 
 	sec.Price, ok = c.(float64)
@@ -170,23 +171,19 @@ func parseQuote(m map[string]interface{}, sec *security.Security) error {
 
 // parseMetric parses the quote json returned from finnhub
 func parseMetric(m map[string]interface{}, sec *security.Security) error {
-	mMetric, ok := m["metric"]
-	if !ok {
-		return fmt.Errorf("unable to parse metric object")
+	metric, err := web.MsiValue(m, []string{"metric"})
+	if err != nil {
+		return fmt.Errorf("unable to parse metric object %s", err)
 	}
 
-	metric, ok := mMetric.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("unable to decode metric object")
+	// The pe key is optional; ignore it if not there
+	// When present, sometimes it is nil; remap that to zero
+	pe, err := web.MsiValued(metric, []string{"peBasicExclExtraTTM"}, 0.0)
+	if err != nil {
+		return nil
 	}
 
-	pe, ok := metric["peBasicExclExtraTTM"]
-	if ok && pe != nil {
-		sec.PE, ok = pe.(float64)
-		if !ok {
-			return fmt.Errorf("unable to convert pe to float64 %v", pe)
-		}
-	}
+	sec.PE = pe.(float64)
 
 	return nil
 }
