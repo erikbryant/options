@@ -29,18 +29,19 @@ func Init(passPhrase string) {
 	}
 }
 
-func floats(m map[string]interface{}, key string) ([]float64, error) {
+// float64Slice returns []float64 for the given key
+func float64Slice(m map[string]interface{}, key string) ([]float64, error) {
 	vals := []float64{}
 
-	data, ok := m[key].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unable to convert %s", key)
+	rows, err := web.MsiValue(m, []string{key})
+	if err != nil {
+		return nil, fmt.Errorf("float64Slice: unable to convert %s %s", key, err)
 	}
 
-	for _, d := range data {
+	for _, row := range rows.([]interface{}) {
 		v := 0.0
-		if d != nil {
-			v = d.(float64)
+		if row != nil {
+			v = row.(float64)
 		}
 		vals = append(vals, v)
 	}
@@ -48,18 +49,19 @@ func floats(m map[string]interface{}, key string) ([]float64, error) {
 	return vals, nil
 }
 
-func int64s(m map[string]interface{}, key string) ([]int64, error) {
+// int64Slice returns []int64 for the given key
+func int64Slice(m map[string]interface{}, key string) ([]int64, error) {
 	vals := []int64{}
 
-	data, ok := m[key].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unable to convert %s", key)
+	rows, err := web.MsiValue(m, []string{key})
+	if err != nil {
+		return nil, fmt.Errorf("int64Slice: unable to convert %s %s", key, err)
 	}
 
-	for _, d := range data {
-		val, ok := d.(float64)
+	for _, row := range rows.([]interface{}) {
+		val, ok := row.(float64)
 		if !ok {
-			fmt.Printf("Expected a float64, got '%v'. Assuming 0.\n", d)
+			fmt.Printf("Expected a float64, got '%v'. Assuming 0.\n", row)
 			val = 0
 		}
 		vals = append(vals, int64(val))
@@ -68,17 +70,17 @@ func int64s(m map[string]interface{}, key string) ([]int64, error) {
 	return vals, nil
 }
 
-// values returns values for the given key
-func values(m map[string]interface{}, key string) ([]string, error) {
+// stringSlice returns []string for the given key
+func stringSlice(m map[string]interface{}, key string) ([]string, error) {
 	vals := []string{}
 
-	data, ok := m[key].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unable to convert %s", key)
+	rows, err := web.MsiValue(m, []string{key})
+	if err != nil {
+		return nil, fmt.Errorf("stringSlice: unable to convert %s %s", key, err)
 	}
 
-	for _, d := range data {
-		vals = append(vals, d.(string))
+	for _, row := range rows.([]interface{}) {
+		vals = append(vals, row.(string))
 	}
 
 	return vals, nil
@@ -86,52 +88,52 @@ func values(m map[string]interface{}, key string) ([]string, error) {
 
 // parseMarketOptions extracts salient information from the raw format
 func parseMarketOptions(m map[string]interface{}, sec *security.Security) error {
-	underlyingPrice, err := floats(m, "underlyingPrice")
+	underlyingPrice, err := float64Slice(m, "underlyingPrice")
 	if err != nil {
 		return err
 	}
 
-	strike, err := floats(m, "strike")
+	strike, err := float64Slice(m, "strike")
 	if err != nil {
 		return err
 	}
 
-	bid, err := floats(m, "bid")
+	bid, err := float64Slice(m, "bid")
 	if err != nil {
 		return err
 	}
 
-	ask, err := floats(m, "ask")
+	ask, err := float64Slice(m, "ask")
 	if err != nil {
 		return err
 	}
 
-	expiration, err := int64s(m, "expiration")
+	expiration, err := int64Slice(m, "expiration")
 	if err != nil {
 		return err
 	}
 
-	delta, err := floats(m, "delta")
+	delta, err := float64Slice(m, "delta")
 	if err != nil {
 		return err
 	}
 
-	iv, err := floats(m, "iv")
+	iv, err := float64Slice(m, "iv")
 	if err != nil {
 		return err
 	}
 
-	last, err := floats(m, "last")
+	last, err := float64Slice(m, "last")
 	if err != nil {
 		return err
 	}
 
-	openInterest, err := int64s(m, "openInterest")
+	openInterest, err := int64Slice(m, "openInterest")
 	if err != nil {
 		return err
 	}
 
-	updated, err := int64s(m, "updated")
+	updated, err := int64Slice(m, "updated")
 	if err != nil {
 		return err
 	}
@@ -276,7 +278,7 @@ func expirationsUpTo(ticker, latestExpiration string) ([]string, error) {
 		return nil, fmt.Errorf("error fetching %s expirations %s", ticker, err)
 	}
 
-	dates, err := values(response, "expirations")
+	dates, err := stringSlice(response, "expirations")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing %s expirations %s", ticker, err)
 	}
