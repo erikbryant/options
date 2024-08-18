@@ -93,22 +93,22 @@ func webRequest(url string) (map[string]interface{}, bool, error) {
 
 // parseEarnings parses the earnings json returned from finnhub
 func parseEarnings(m map[string]interface{}) (map[string]string, error) {
-	earnings := make(map[string]string)
+	earnings := map[string]string{}
 
-	earningsCalendar, ok := m["earningsCalendar"]
-	if !ok {
-		return nil, fmt.Errorf("unable to parse earningsCalendar object")
+	earningsCalendar, err := web.MsiValue(m, []string{"earningsCalendar"})
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse earningsCalendar object %s", err)
 	}
 
-	for _, val := range earningsCalendar.([]interface{}) {
-		symbol, ok := val.(map[string]interface{})["symbol"]
-		if !ok {
-			return nil, fmt.Errorf("unable to parse symbol object")
+	for _, entry := range earningsCalendar.([]interface{}) {
+		symbol, err := web.MsiValue(entry, []string{"symbol"})
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse symbol object %s", err)
 		}
 
-		d, ok := val.(map[string]interface{})["date"]
-		if !ok {
-			return nil, fmt.Errorf("unable to parse date object")
+		d, err := web.MsiValue(entry, []string{"date"})
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse date object %s", err)
 		}
 
 		earnings[symbol.(string)] = d.(string)
