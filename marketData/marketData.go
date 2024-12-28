@@ -323,7 +323,6 @@ func GetOptions(sec *security.Security, latestExpiration string) error {
 // Candle returns open/close candlestick data for a symbol
 func Candle(symbol, date string) (float64, float64, error) {
 	url := "https://api.marketdata.app/v1/stocks/bulkcandles/D/?symbols=" + symbol + "&date=" + date
-
 	response, err := fetch(url)
 	if err != nil {
 		return 0, 0, fmt.Errorf("error fetching marketData %s candlesticks %s", symbol, err)
