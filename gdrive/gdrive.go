@@ -150,7 +150,7 @@ func CreateSheet(name string, parentID string) (*drive.File, error) {
 
 	file, err := srv.Files.Create(f).Media(content, googleapi.ContentType("text/csv")).Do()
 	if err != nil {
-		return nil, fmt.Errorf("could not create file: " + err.Error())
+		return nil, fmt.Errorf("could not create file %s", err.Error())
 	}
 
 	return file, nil
