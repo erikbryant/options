@@ -7,7 +7,7 @@ require (
 	github.com/erikbryant/web v0.10.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	golang.org/x/oauth2 v0.30.0
-	google.golang.org/api v0.239.0
+	google.golang.org/api v0.240.0
 )
 
 require (
